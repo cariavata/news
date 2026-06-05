@@ -113,6 +113,66 @@ export default function AdminSEO() {
           </div>
         </section>
 
+        {/* SNS Share (Open Graph) Info */}
+        <section>
+          <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">SNS/메신저 공유 설정 (Open Graph)</h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">공유 제목 (og:title)</label>
+              <input 
+                type="text" 
+                value={formData.ogTitle || ''}
+                onChange={(e) => setFormData({...formData, ogTitle: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
+                placeholder="카카오톡, 페이스북 등에 공유될 때 표시될 제목"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">공유 설명 (og:description)</label>
+              <textarea 
+                rows={2}
+                value={formData.ogDescription || ''}
+                onChange={(e) => setFormData({...formData, ogDescription: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none"
+                placeholder="카카오톡, 페이스북 등에 공유될 때 표시될 설명"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">공유 이미지 (og:image) - 권장 1200x630px</label>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <input 
+                  type="url" 
+                  value={formData.ogImage || ''}
+                  onChange={(e) => setFormData({...formData, ogImage: e.target.value})}
+                  className="w-full sm:flex-1 border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
+                  placeholder="공유 이미지 URL 또는 컴퓨터에서 업로드"
+                />
+                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
+                  <span>내 컴퓨터에서 업로드</span>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/png, image/jpeg" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setFormData({ ...formData, ogImage: reader.result as string });
+                        reader.readAsDataURL(file);
+                      }
+                    }} 
+                  />
+                </label>
+              </div>
+              {formData.ogImage && (
+                <div className="mt-4 border border-slate-200 rounded-md p-4 bg-slate-100/50 inline-block w-full max-w-sm">
+                  <img src={formData.ogImage} alt="OG preview" className="w-full h-auto aspect-[1.9/1] object-cover rounded-md" />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* Verification */}
         <section>
           <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">검색 엔진 및 로봇 통제</h3>

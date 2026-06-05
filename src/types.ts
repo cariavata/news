@@ -28,6 +28,9 @@ export interface SeoSettings {
   adsTxt?: string;
   sitemapXml?: string;
   rssXml?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
 }
 
 export interface Article {

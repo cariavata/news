@@ -134,7 +134,10 @@ export const useAppStore = create<AppState>()(
         robotsTxt: 'User-agent: *\nAllow: /',
         adsTxt: '',
         sitemapXml: '',
-        rssXml: ''
+        rssXml: '',
+        ogTitle: 'DAILY PULSE',
+        ogDescription: '건강과 관련된 최신 뉴스를 전달합니다.',
+        ogImage: ''
       },
       updateSeoSettings: (settings) => {
         setDoc(doc(db, 'settings', 'seo'), settings);

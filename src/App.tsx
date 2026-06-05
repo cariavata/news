@@ -50,6 +50,14 @@ export default function App() {
         <title>{seoSettings.title}</title>
         <meta name="description" content={seoSettings.description} />
         <meta name="keywords" content={seoSettings.keywords} />
+        
+        {/* Open Graph Tags for SNS Share */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={seoSettings.ogTitle || seoSettings.title} />
+        <meta property="og:description" content={seoSettings.ogDescription || seoSettings.description} />
+        {seoSettings.ogImage && <meta property="og:image" content={seoSettings.ogImage} />}
+        {seoSettings.siteName && <meta property="og:site_name" content={seoSettings.siteName} />}
+
         {seoSettings.naverSiteVerification && (
           <meta name="naver-site-verification" content={seoSettings.naverSiteVerification.includes('content=') ? seoSettings.naverSiteVerification.match(/content="([^"]+)"/)?.[1] || seoSettings.naverSiteVerification : seoSettings.naverSiteVerification} />
         )}
