@@ -8,21 +8,9 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ArrowLeft, Link as LinkIcon, Share2 } from 'lucide-react';
 
-declare global {
-  interface Window {
-    Kakao: any;
-  }
-}
-
 const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-  </svg>
-);
-
-const KakaoIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px]">
-    <path d="M12 3c-5.523 0-10 3.582-10 8 0 2.85 1.83 5.352 4.606 6.786-.15 1.05-.583 3.655-.605 3.823-.028.21.08.204.168.14.07-.052 3.107-2.128 4.34-3.03.483.072.98.11 1.49.11 5.523 0 10-3.582 10-8s-4.477-8-10-8z"/>
   </svg>
 );
 
@@ -31,22 +19,6 @@ export default function ArticleDetail() {
   const navigate = useNavigate();
   const { articles, categories, seoSettings } = useAppStore();
   const article = articles.find(a => a.id === id);
-
-  React.useEffect(() => {
-    if (seoSettings?.kakaoAppKey && !window.Kakao) {
-      const script = document.createElement('script');
-      script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.6.0/kakao.min.js';
-      script.async = true;
-      script.onload = () => {
-        if (window.Kakao && !window.Kakao.isInitialized()) {
-          window.Kakao.init(seoSettings.kakaoAppKey);
-        }
-      };
-      document.head.appendChild(script);
-    } else if (window.Kakao && !window.Kakao.isInitialized() && seoSettings?.kakaoAppKey) {
-      window.Kakao.init(seoSettings.kakaoAppKey);
-    }
-  }, [seoSettings?.kakaoAppKey]);
 
   if (!article) {
     return (
@@ -115,51 +87,6 @@ export default function ArticleDetail() {
                 title="X (트위터) 공유"
               >
                 <XIcon />
-              </button>
-              <button 
-                onClick={() => {
-                  if (!seoSettings?.kakaoAppKey) {
-                    alert('관리자 모드의 [기본 정보 및 검색 최적화]에서 카카오 자바스크립트 앱 키를 먼저 등록해주세요.\n(카카오 디벨로퍼스에서 발급)');
-                    return;
-                  }
-                  
-                  if (window.Kakao && window.Kakao.isInitialized()) {
-                    let shareImageUrl = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80';
-                    if (article.imageUrl && article.imageUrl.startsWith('http')) {
-                      shareImageUrl = article.imageUrl;
-                    } else if (seoSettings?.logoUrl && seoSettings.logoUrl.startsWith('http')) {
-                      shareImageUrl = seoSettings.logoUrl;
-                    }
-
-                    window.Kakao.Share.sendDefault({
-                      objectType: 'feed',
-                      content: {
-                        title: article.title,
-                        description: article.excerpt,
-                        imageUrl: shareImageUrl,
-                        link: {
-                          mobileWebUrl: window.location.href,
-                          webUrl: window.location.href,
-                        },
-                      },
-                      buttons: [
-                        {
-                          title: '기사 보기',
-                          link: {
-                            mobileWebUrl: window.location.href,
-                            webUrl: window.location.href,
-                          },
-                        },
-                      ],
-                    });
-                  } else {
-                    alert('카카오 SDK 로딩 중이거나 초기화에 실패했습니다.');
-                  }
-                }}
-                className="w-10 h-10 flex items-center justify-center bg-[#FEE500] hover:bg-[#FDD800] text-[#000000] rounded-full transition shadow-sm"
-                title="카카오톡 공유"
-              >
-                <KakaoIcon />
               </button>
               <button 
                 onClick={async () => {
