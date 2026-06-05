@@ -54,7 +54,7 @@ export default function Header() {
 
         <Link to="/">
           {seoSettings?.logoUrl ? (
-            <img src={seoSettings.logoUrl} alt={seoSettings.siteName || 'Logo'} className="h-12 md:h-16 lg:h-20 object-contain mx-auto" />
+            <img src={seoSettings.logoUrl} alt={seoSettings.siteName || 'Logo'} className="w-[180px] sm:w-[240px] md:w-[320px] lg:w-[400px] h-auto object-contain mx-auto" />
           ) : (
             <h1 className="text-[2.5rem] md:text-6xl lg:text-7xl font-serif font-extrabold text-slate-900 tracking-tight text-center">
               {seoSettings?.siteName || 'DAILY PULSE'}
