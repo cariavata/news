@@ -4,6 +4,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ReactMarkdown from 'react-markdown';
 
+import remarkBreaks from 'remark-breaks';
+
 export default function CompanyPageView() {
   const { id } = useParams();
   const { companyPages } = useAppStore();
@@ -31,8 +33,8 @@ export default function CompanyPageView() {
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900 mb-10 pb-6 border-b border-slate-200">
             {page.title}
           </h1>
-          <div className="prose prose-slate prose-lg max-w-none font-sans text-slate-800 leading-[1.8] break-keep whitespace-pre-wrap">
-            <ReactMarkdown>{page.content}</ReactMarkdown>
+          <div className="prose prose-slate max-w-none font-sans text-slate-800 leading-relaxed break-keep prose-p:my-2 prose-headings:mb-3 prose-headings:mt-6 prose-li:my-0">
+            <ReactMarkdown remarkPlugins={[remarkBreaks]}>{page.content}</ReactMarkdown>
           </div>
         </article>
       </main>

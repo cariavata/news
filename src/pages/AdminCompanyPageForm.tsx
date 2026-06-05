@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useArticleStore';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CompanyPage } from '../types';
+import { Bold } from 'lucide-react';
 
 export default function AdminCompanyPageForm() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,25 @@ export default function AdminCompanyPageForm() {
       }
     }
   }, [id, companyPages, isEditing]);
+
+  const handleBoldClick = () => {
+    const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement | null;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.content;
+
+    const selectedText = text.substring(start, end);
+    const newText = text.substring(0, start) + `**${selectedText || '굵은글씨'}**` + text.substring(end);
+    
+    setFormData({ ...formData, content: newText });
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 2, end + 2 + (selectedText ? 0 : 4));
+    }, 0);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,13 +83,26 @@ export default function AdminCompanyPageForm() {
 
         <div className="flex flex-col gap-2">
           <label className="font-bold text-sm text-slate-700">본문 내용 (마크다운 지원)</label>
-          <textarea 
-            value={formData.content}
-            onChange={(e) => setFormData({...formData, content: e.target.value})}
-            className="border border-slate-300 rounded-md p-3 min-h-[400px] focus:ring-2 focus:ring-slate-900 outline-none transition font-sans text-sm leading-relaxed whitespace-pre-wrap leading-relaxed"
-            placeholder="내용을 입력하세요..."
-            required
-          />
+          <div className="border border-slate-300 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-slate-900 transition">
+            <div className="bg-slate-50 border-b border-slate-300 p-2 flex gap-2">
+              <button 
+                type="button"
+                onClick={handleBoldClick}
+                className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition"
+                title="굵게 (Ctrl+B)"
+              >
+                <Bold className="w-4 h-4" />
+              </button>
+            </div>
+            <textarea 
+              id="content-textarea"
+              value={formData.content}
+              onChange={(e) => setFormData({...formData, content: e.target.value})}
+              className="w-full p-3 min-h-[400px] outline-none font-sans text-sm leading-relaxed whitespace-pre-wrap"
+              placeholder="내용을 입력하세요..."
+              required
+            />
+          </div>
         </div>
 
         <div className="mt-4 pt-6 border-t border-slate-200 flex justify-end gap-3">
