@@ -33,8 +33,23 @@ export default function CompanyPageView() {
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900 mb-10 pb-6 border-b border-slate-200">
             {page.title}
           </h1>
-          <div className="prose prose-slate max-w-none font-sans text-slate-800 leading-relaxed break-keep prose-p:my-2 prose-headings:mb-3 prose-headings:mt-6 prose-li:my-0">
-            <ReactMarkdown remarkPlugins={[remarkBreaks]}>{page.content}</ReactMarkdown>
+          <div className="font-sans text-slate-800 text-[15px] leading-[1.65] break-keep">
+            <ReactMarkdown 
+              remarkPlugins={[remarkBreaks]}
+              components={{
+                p: ({node, ...props}) => <p className="mb-5 last:mb-0" {...props} />,
+                strong: ({node, ...props}) => <strong className="font-bold text-slate-900" {...props} />,
+                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-8 mb-4 text-slate-900" {...props} />,
+                h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-6 mb-3 text-slate-900" {...props} />,
+                h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-4 mb-2 text-slate-900" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-5" {...props} />,
+                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-5" {...props} />,
+                li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                a: ({node, ...props}) => <a className="text-emerald-600 hover:underline" {...props} />,
+              }}
+            >
+              {page.content}
+            </ReactMarkdown>
           </div>
         </article>
       </main>
