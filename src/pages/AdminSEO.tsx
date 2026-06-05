@@ -4,6 +4,8 @@ import { useAppStore } from '../store/useArticleStore';
 export default function AdminSEO() {
   const { seoSettings, updateSeoSettings } = useAppStore();
   const [formData, setFormData] = useState({
+    siteName: '',
+    logoUrl: '',
     title: '',
     description: '',
     keywords: '',
@@ -19,18 +21,67 @@ export default function AdminSEO() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateSeoSettings(formData);
-    alert('SEO 및 검색 엔진 설정이 저장되었습니다.');
+    alert('기본 설정 및 검색 엔진 설정이 저장되었습니다.');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, logoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden max-w-4xl">
       <div className="p-6 border-b border-slate-200 bg-slate-50">
-        <h1 className="text-xl font-bold font-sans text-slate-800">검색 엔진 최적화 (SEO) 및 애드센스 설정</h1>
-        <p className="text-sm text-slate-500 mt-2">네이버 서치어드바이저, 구글 수집, 사이트맵/로봇 등의 정보를 입력합니다.</p>
+        <h1 className="text-xl font-bold font-sans text-slate-800">사이트 기본 정보 및 검색 최적화 (SEO)</h1>
+        <p className="text-sm text-slate-500 mt-2">사이트 명칭, 로고, 네이버 서치어드바이저, 구글 수집 등의 정보를 입력합니다.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-8">
         
+        {/* Site Identity Info */}
+        <section>
+          <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">사이트 기본 정보</h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">홈페이지 명칭 설정</label>
+              <input 
+                type="text" 
+                value={formData.siteName}
+                onChange={(e) => setFormData({...formData, siteName: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
+                placeholder="예: DAILY PULSE"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">상단 로고 이미지 (선택, 권장 비율 가로형)</label>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <input 
+                  type="url" 
+                  value={formData.logoUrl}
+                  onChange={(e) => setFormData({...formData, logoUrl: e.target.value})}
+                  className="w-full sm:flex-1 border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
+                  placeholder="로고 이미지 URL 또는 컴퓨터에서 업로드"
+                />
+                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
+                  <span>내 컴퓨터에서 업로드</span>
+                  <input type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml" onChange={handleImageUpload} />
+                </label>
+              </div>
+              {formData.logoUrl && (
+                <div className="mt-4 border border-slate-200 rounded-md p-4 bg-slate-100/50 inline-block">
+                  <img src={formData.logoUrl} alt="Logo preview" className="h-12 object-contain" />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* Basic Meta Info */}
         <section>
           <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">기본 메타태그 설정</h3>

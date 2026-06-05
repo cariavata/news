@@ -3,6 +3,12 @@ export interface CategoryInfo {
   name: string;
 }
 
+export interface CompanyPage {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface AdBanner {
   id: string;
   imageUrl: string;
@@ -10,6 +16,8 @@ export interface AdBanner {
 }
 
 export interface SeoSettings {
+  siteName: string;
+  logoUrl: string;
   title: string;
   description: string;
   keywords: string;

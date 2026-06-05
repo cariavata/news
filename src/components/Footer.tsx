@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
 
 export default function Footer() {
-  const categories = useAppStore(state => state.categories);
+  const { categories, companyPages } = useAppStore();
 
   return (
     <footer className="bg-slate-950 text-slate-400 py-16 px-4 sm:px-6 lg:px-8 mt-16 border-t-[8px] border-slate-900">
@@ -13,12 +13,6 @@ export default function Footer() {
             <p className="text-sm font-sans max-w-sm mb-6 leading-relaxed break-keep">
               연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.
             </p>
-            <div className="flex gap-4">
-               {/* Social placeholders */}
-               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer transition" />
-               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer transition" />
-               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer transition" />
-            </div>
           </div>
 
           {/* Sections */}
@@ -34,10 +28,11 @@ export default function Footer() {
           {/* Corporate */}
           <div className="flex flex-col gap-3">
             <h4 className="text-white font-bold text-xs tracking-widest mb-3">회사 소개</h4>
-            <Link to="/" className="text-sm hover:text-white transition">소개</Link>
-            <Link to="/" className="text-sm hover:text-white transition">편집 가이드라인</Link>
-            <Link to="/" className="text-sm hover:text-white transition">채용 정보</Link>
-            <Link to="/" className="text-sm hover:text-white transition">개인정보 처리방침 및 약관</Link>
+            {companyPages.map(page => (
+              <Link key={page.id} to={`/info/${page.id}`} className="text-sm hover:text-white transition">
+                {page.title}
+              </Link>
+            ))}
           </div>
        </div>
 

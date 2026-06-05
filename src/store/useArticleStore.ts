@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Article, CategoryInfo, AdBanner, SeoSettings } from '../types';
+import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -20,6 +20,11 @@ interface AppState {
   adBanners: AdBanner[];
   addAdBanner: (banner: Omit<AdBanner, "id">) => void;
   deleteAdBanner: (id: string) => void;
+
+  companyPages: CompanyPage[];
+  addCompanyPage: (page: Omit<CompanyPage, "id">) => void;
+  updateCompanyPage: (id: string, page: Partial<CompanyPage>) => void;
+  deleteCompanyPage: (id: string) => void;
 
   seoSettings: SeoSettings;
   updateSeoSettings: (settings: SeoSettings) => void;
@@ -66,7 +71,25 @@ export const useAppStore = create<AppState>()(
         adBanners: state.adBanners.filter(b => b.id !== id)
       })),
 
+      companyPages: [
+        { id: 'about', title: '소개', content: '회사 소개 내용입니다.' },
+        { id: 'guidelines', title: '편집 가이드라인', content: '편집 가이드라인 내용입니다.' },
+        { id: 'careers', title: '채용 정보', content: '채용 정보 내용입니다.' },
+        { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '약관 내용입니다.' },
+      ],
+      addCompanyPage: (pageData) => set((state) => ({
+        companyPages: [...state.companyPages, { ...pageData, id: uuidv4() }]
+      })),
+      updateCompanyPage: (id, pageData) => set((state) => ({
+        companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...pageData } : page)
+      })),
+      deleteCompanyPage: (id) => set((state) => ({
+        companyPages: state.companyPages.filter(p => p.id !== id)
+      })),
+
       seoSettings: {
+        siteName: 'DAILY PULSE',
+        logoUrl: '',
         title: '데일리 펄스 | 신뢰할 수 있는 뉴스',
         description: '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.',
         keywords: '뉴스, 건강, 척추관절, 여성건강, 한의학, 건강검진',

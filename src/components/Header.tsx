@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
 
 export default function Header() {
-  const { articles, categories } = useAppStore();
+  const { articles, categories, seoSettings } = useAppStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,9 +53,13 @@ export default function Header() {
         </div>
 
         <Link to="/">
-          <h1 className="text-[2.5rem] md:text-6xl lg:text-7xl font-serif font-extrabold text-slate-900 tracking-tight text-center">
-            데일리 펄스
-          </h1>
+          {seoSettings?.logoUrl ? (
+            <img src={seoSettings.logoUrl} alt={seoSettings.siteName || 'Logo'} className="h-12 md:h-16 lg:h-20 object-contain mx-auto" />
+          ) : (
+            <h1 className="text-[2.5rem] md:text-6xl lg:text-7xl font-serif font-extrabold text-slate-900 tracking-tight text-center">
+              {seoSettings?.siteName || 'DAILY PULSE'}
+            </h1>
+          )}
         </Link>
       </div>
 
