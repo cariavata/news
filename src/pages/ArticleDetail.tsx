@@ -5,7 +5,19 @@ import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Share2 } from 'lucide-react';
+
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
+
+const KakaoIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px]">
+    <path d="M12 3c-5.523 0-10 3.582-10 8 0 2.85 1.83 5.352 4.606 6.786-.15 1.05-.583 3.655-.605 3.823-.028.21.08.204.168.14.07-.052 3.107-2.128 4.34-3.03.483.072.98.11 1.49.11 5.523 0 10-3.582 10-8s-4.477-8-10-8z"/>
+  </svg>
+);
 
 export default function ArticleDetail() {
   const { id } = useParams();
@@ -71,27 +83,38 @@ export default function ArticleDetail() {
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition">
               <ArrowLeft className="w-5 h-5" /> 목록으로
             </button>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+                }}
+                className="w-10 h-10 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white rounded-full transition shadow-sm"
+                title="X (트위터) 공유"
+              >
+                <XIcon />
+              </button>
+              <button 
+                onClick={() => {
+                  window.open(`https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(window.location.href)}`, '_blank');
+                }}
+                className="w-10 h-10 flex items-center justify-center bg-[#FEE500] hover:bg-[#FDD800] text-[#000000] rounded-full transition shadow-sm"
+                title="카카오톡 공유"
+              >
+                <KakaoIcon />
+              </button>
               <button 
                 onClick={async () => {
                   try {
-                    if (navigator.share) {
-                      await navigator.share({
-                        title: article.title,
-                        text: article.excerpt,
-                        url: window.location.href,
-                      });
-                    } else {
-                      await navigator.clipboard.writeText(window.location.href);
-                      alert('링크가 클립보드에 복사되었습니다.');
-                    }
+                    await navigator.clipboard.writeText(window.location.href);
+                    alert('링크가 클립보드에 복사되었습니다.');
                   } catch (err) {
-                    console.error('Share failed:', err);
+                    console.error('Copy failed:', err);
                   }
                 }}
-                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded transition"
+                className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full transition shadow-sm border border-slate-200"
+                title="단축 URL 복사"
               >
-                공유하기
+                <LinkIcon className="w-4 h-4" />
               </button>
             </div>
           </div>
