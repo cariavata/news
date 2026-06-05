@@ -61,11 +61,11 @@ export const useAppStore = create<AppState>()(
       addCategory: (name) => {
         const id = uuidv4();
         const obj = { id, name };
-        setDoc(doc(db, 'categories', id), obj);
+        setDoc(doc(db, 'categories', id), obj).catch(e => console.error("Error writing category: ", e));
         set((state) => ({ categories: [...state.categories, obj] }));
       },
       deleteCategory: (id) => {
-        deleteDoc(doc(db, 'categories', id));
+        deleteDoc(doc(db, 'categories', id)).catch(e => console.error("Error deleting category: ", e));
         set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
       },
 
@@ -73,17 +73,17 @@ export const useAppStore = create<AppState>()(
       addArticle: (articleData) => {
         const id = uuidv4();
         const obj = { ...articleData, id, createdAt: new Date().toISOString() };
-        setDoc(doc(db, 'articles', id), obj);
+        setDoc(doc(db, 'articles', id), obj).catch(e => console.error("Error adding article: ", e));
         set((state) => ({ articles: [obj, ...state.articles] }));
       },
       updateArticle: (id, updatedArticle) => {
-        updateDoc(doc(db, 'articles', id), updatedArticle);
+        updateDoc(doc(db, 'articles', id), updatedArticle).catch(e => console.error("Error updating article: ", e));
         set((state) => ({
           articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article)
         }));
       },
       deleteArticle: (id) => {
-        deleteDoc(doc(db, 'articles', id));
+        deleteDoc(doc(db, 'articles', id)).catch(e => console.error("Error deleting article: ", e));
         set((state) => ({ articles: state.articles.filter(article => article.id !== id) }));
       },
 
@@ -91,11 +91,11 @@ export const useAppStore = create<AppState>()(
       addAdBanner: (bannerData) => {
         const id = uuidv4();
         const obj = { ...bannerData, id };
-        setDoc(doc(db, 'adBanners', id), obj);
+        setDoc(doc(db, 'adBanners', id), obj).catch(e => console.error("Error adding banner: ", e));
         set((state) => ({ adBanners: [...state.adBanners, obj] }));
       },
       deleteAdBanner: (id) => {
-        deleteDoc(doc(db, 'adBanners', id));
+        deleteDoc(doc(db, 'adBanners', id)).catch(e => console.error("Error deleting banner: ", e));
         set((state) => ({ adBanners: state.adBanners.filter(b => b.id !== id) }));
       },
 
@@ -108,17 +108,17 @@ export const useAppStore = create<AppState>()(
       addCompanyPage: (pageData) => {
         const id = uuidv4();
         const obj = { ...pageData, id };
-        setDoc(doc(db, 'companyPages', id), obj);
+        setDoc(doc(db, 'companyPages', id), obj).catch(e => console.error("Error adding page: ", e));
         set((state) => ({ companyPages: [...state.companyPages, obj] }));
       },
       updateCompanyPage: (id, pageData) => {
-        updateDoc(doc(db, 'companyPages', id), pageData);
+        updateDoc(doc(db, 'companyPages', id), pageData).catch(e => console.error("Error updating page: ", e));
         set((state) => ({
           companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...pageData } : page)
         }));
       },
       deleteCompanyPage: (id) => {
-        deleteDoc(doc(db, 'companyPages', id));
+        deleteDoc(doc(db, 'companyPages', id)).catch(e => console.error("Error deleting page: ", e));
         set((state) => ({ companyPages: state.companyPages.filter(p => p.id !== id) }));
       },
 
@@ -130,7 +130,11 @@ export const useAppStore = create<AppState>()(
         keywords: '뉴스, 건강, 척추관절, 여성건강, 한의학, 건강검진',
         naverSiteVerification: '',
         googleAdsenseClient: '',
-        customHeadTags: ''
+        customHeadTags: '',
+        robotsTxt: 'User-agent: *\nAllow: /',
+        adsTxt: '',
+        sitemapXml: '',
+        rssXml: ''
       },
       updateSeoSettings: (settings) => {
         setDoc(doc(db, 'settings', 'seo'), settings);

@@ -20,6 +20,26 @@ import ScrollToTop from './components/ScrollToTop';
 import FirebaseSync from './components/FirebaseSync';
 import { useAppStore } from './store/useArticleStore';
 
+function RobotsTxt() {
+  const seoSettings = useAppStore(state => state.seoSettings);
+  return <pre className="p-4 bg-white min-h-screen text-slate-800 font-mono text-sm">{seoSettings.robotsTxt}</pre>;
+}
+
+function AdsTxt() {
+  const seoSettings = useAppStore(state => state.seoSettings);
+  return <pre className="p-4 bg-white min-h-screen text-slate-800 font-mono text-sm">{seoSettings.adsTxt}</pre>;
+}
+
+function SitemapXml() {
+  const seoSettings = useAppStore(state => state.seoSettings);
+  return <pre className="p-4 bg-white min-h-screen text-slate-800 font-mono text-sm">{seoSettings.sitemapXml}</pre>;
+}
+
+function RssXml() {
+  const seoSettings = useAppStore(state => state.seoSettings);
+  return <pre className="p-4 bg-white min-h-screen text-slate-800 font-mono text-sm">{seoSettings.rssXml}</pre>;
+}
+
 export default function App() {
   const seoSettings = useAppStore(state => state.seoSettings);
 
@@ -31,7 +51,7 @@ export default function App() {
         <meta name="description" content={seoSettings.description} />
         <meta name="keywords" content={seoSettings.keywords} />
         {seoSettings.naverSiteVerification && (
-          <meta name="naver-site-verification" content={seoSettings.naverSiteVerification} />
+          <meta name="naver-site-verification" content={seoSettings.naverSiteVerification.includes('content=') ? seoSettings.naverSiteVerification.match(/content="([^"]+)"/)?.[1] || seoSettings.naverSiteVerification : seoSettings.naverSiteVerification} />
         )}
         {seoSettings.googleAdsenseClient && (
           <meta name="google-adsense-account" content={seoSettings.googleAdsenseClient} />
@@ -47,6 +67,10 @@ export default function App() {
           <Route path="/category/:categoryId" element={<CategoryView />} />
           <Route path="/info/:id" element={<CompanyPageView />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/robots.txt" element={<RobotsTxt />} />
+          <Route path="/ads.txt" element={<AdsTxt />} />
+          <Route path="/sitemap.xml" element={<SitemapXml />} />
+          <Route path="/rss.xml" element={<RssXml />} />
           
           {/* Admin Routes */}
           <Route element={<ProtectedRoute />}>

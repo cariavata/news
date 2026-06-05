@@ -24,6 +24,10 @@ export interface SeoSettings {
   naverSiteVerification: string;
   googleAdsenseClient: string;
   customHeadTags: string;
+  robotsTxt?: string;
+  adsTxt?: string;
+  sitemapXml?: string;
+  rssXml?: string;
 }
 
 export interface Article {

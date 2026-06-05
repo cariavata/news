@@ -11,7 +11,11 @@ export default function AdminSEO() {
     keywords: '',
     naverSiteVerification: '',
     googleAdsenseClient: '',
-    customHeadTags: ''
+    customHeadTags: '',
+    robotsTxt: 'User-agent: *\nAllow: /',
+    adsTxt: '',
+    sitemapXml: '',
+    rssXml: ''
   });
 
   useEffect(() => {
@@ -106,33 +110,94 @@ export default function AdminSEO() {
                 className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">키워드 (Keywords)</label>
-              <input 
-                type="text" 
-                value={formData.keywords}
-                onChange={(e) => setFormData({...formData, keywords: e.target.value})}
-                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
-                placeholder="콤마(,)로 구분"
-              />
-            </div>
           </div>
         </section>
 
         {/* Verification */}
         <section>
-          <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">검색 포털 연동 정보</h3>
-          <div className="flex flex-col gap-4">
+          <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">검색 엔진 및 로봇 통제</h3>
+          <div className="flex flex-col gap-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">네이버 서치어드바이저 (naver-site-verification)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">robots.txt (검색 로봇 제어)</label>
+              <textarea 
+                rows={4}
+                value={formData.robotsTxt}
+                onChange={(e) => setFormData({...formData, robotsTxt: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none font-mono text-sm bg-slate-50"
+              />
+              <div className="flex justify-between items-center mt-2 pl-1">
+                <span className="text-xs text-slate-500">네이버 서치어드바이저 {'>'} 검증 {'>'} robots.txt 에서 확인 가능</span>
+                <a href="/robots.txt" target="_blank" className="text-xs text-[#a062ff] hover:underline">/robots.txt 열기</a>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">ads.txt (구글 애드센스 등)</label>
+              <textarea 
+                rows={4}
+                value={formData.adsTxt}
+                onChange={(e) => setFormData({...formData, adsTxt: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none font-mono text-sm bg-slate-50"
+              />
+              <div className="flex justify-between items-center mt-2 pl-1">
+                <span className="text-xs text-slate-500">애드센스 승인을 위해 ads.txt 내용을 붙여넣으세요.</span>
+                <a href="/ads.txt" target="_blank" className="text-xs text-[#a062ff] hover:underline">/ads.txt 열기</a>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">사이트맵 (sitemap.xml)</label>
+              <textarea 
+                rows={4}
+                value={formData.sitemapXml}
+                onChange={(e) => setFormData({...formData, sitemapXml: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none font-mono text-sm bg-slate-50"
+                placeholder={`<?xml version="1.0" encoding="UTF-8"?>...`}
+              />
+              <div className="flex justify-between items-center mt-2 pl-1">
+                <span className="text-xs text-slate-500">sitemap.xml 내용을 복사하여 붙여넣으세요.</span>
+                <a href="/sitemap.xml" target="_blank" className="text-xs text-[#a062ff] hover:underline">/sitemap.xml 열기</a>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">RSS 피드 (rss.xml)</label>
+              <textarea 
+                rows={4}
+                value={formData.rssXml}
+                onChange={(e) => setFormData({...formData, rssXml: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none font-mono text-sm bg-slate-50"
+                placeholder={`<?xml version="1.0" encoding="UTF-8"?>...`}
+              />
+              <div className="flex justify-between items-center mt-2 pl-1">
+                <span className="text-xs text-slate-500">rss.xml 내용을 복사하여 붙여넣으세요.</span>
+                <a href="/rss.xml" target="_blank" className="text-xs text-[#a062ff] hover:underline">/rss.xml 열기</a>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">검색 포털 메타태그 (Meta Keywords)</label>
+              <textarea 
+                rows={3}
+                value={formData.keywords}
+                onChange={(e) => setFormData({...formData, keywords: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none text-sm"
+              />
+              <span className="text-xs text-slate-500 block mt-2 pl-1">네이버, 구글 등 검색 포털에서 검색이 잘 되게 하는 키워드를 입력합니다.</span>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">네이버 사이트 소유확인 (Meta Tag)</label>
               <input 
                 type="text" 
                 value={formData.naverSiteVerification}
                 onChange={(e) => setFormData({...formData, naverSiteVerification: e.target.value})}
-                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none font-mono text-sm"
-                placeholder="영문/숫자 코드 입력"
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none font-mono text-sm bg-slate-50"
+                placeholder='<meta name="naver-site-verification" content="..." />'
               />
+              <span className="text-xs text-slate-500 block mt-2 pl-1">네이버 웹마스터도구에서 제공하는 메타태그 전체 또는 content 값을 입력하세요.</span>
             </div>
+            
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">구글 애드센스 클라이언트 ID (ca-pub-xxx)</label>
               <input 
