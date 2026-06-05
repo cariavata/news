@@ -17,8 +17,7 @@ export default function Header() {
           <span>{today}</span>
         </div>
         <div className="flex gap-4">
-          <a href="#" className="hover:text-white transition">로그인</a>
-          <a href="#" className="hover:text-white transition">구독하기</a>
+          <a href="#" className="hover:text-white transition">관리자 로그인</a>
         </div>
       </div>
 
@@ -32,12 +31,6 @@ export default function Header() {
         <h1 className="text-[2.5rem] md:text-6xl lg:text-7xl font-serif font-extrabold text-slate-900 tracking-tight text-center">
           데일리 펄스
         </h1>
-
-        <div className="absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 hidden md:flex items-center">
-          <button className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-sm font-semibold rounded-sm transition shadow-sm">
-            지금 구독하기
-          </button>
-        </div>
       </div>
 
       {/* Main Nav */}
