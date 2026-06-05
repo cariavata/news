@@ -124,12 +124,19 @@ export default function ArticleDetail() {
                   }
                   
                   if (window.Kakao && window.Kakao.isInitialized()) {
+                    let shareImageUrl = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80';
+                    if (article.imageUrl && article.imageUrl.startsWith('http')) {
+                      shareImageUrl = article.imageUrl;
+                    } else if (seoSettings?.logoUrl && seoSettings.logoUrl.startsWith('http')) {
+                      shareImageUrl = seoSettings.logoUrl;
+                    }
+
                     window.Kakao.Share.sendDefault({
                       objectType: 'feed',
                       content: {
                         title: article.title,
                         description: article.excerpt,
-                        imageUrl: article.imageUrl || seoSettings.logoUrl || 'https://via.placeholder.com/800x400?text=News',
+                        imageUrl: shareImageUrl,
                         link: {
                           mobileWebUrl: window.location.href,
                           webUrl: window.location.href,
