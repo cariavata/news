@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useAppStore } from '../store/useArticleStore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -39,6 +40,15 @@ export default function ArticleDetail() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col">
+      <Helmet>
+        <title>{article.title} - {seoSettings.siteName || 'DAILY PULSE'}</title>
+        <meta name="description" content={article.excerpt} />
+        <meta property="og:title" content={article.title} />
+        <meta property="og:description" content={article.excerpt} />
+        {article.imageUrl && <meta property="og:image" content={article.imageUrl} />}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={window.location.href} />
+      </Helmet>
       <Header />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
         <article className="col-span-1 lg:col-span-8 bg-white border border-slate-200 p-6 sm:p-10 lg:p-12 rounded-lg shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
