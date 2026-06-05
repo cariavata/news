@@ -18,6 +18,7 @@ export interface AdBanner {
 export interface SeoSettings {
   siteName: string;
   logoUrl: string;
+  kakaoAppKey?: string;
   title: string;
   description: string;
   keywords: string;

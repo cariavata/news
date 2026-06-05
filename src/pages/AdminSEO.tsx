@@ -6,6 +6,7 @@ export default function AdminSEO() {
   const [formData, setFormData] = useState({
     siteName: '',
     logoUrl: '',
+    kakaoAppKey: '',
     title: '',
     description: '',
     keywords: '',
@@ -15,7 +16,10 @@ export default function AdminSEO() {
   });
 
   useEffect(() => {
-    setFormData(seoSettings);
+    setFormData({
+      ...seoSettings,
+      kakaoAppKey: seoSettings.kakaoAppKey || ''
+    });
   }, [seoSettings]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -78,6 +82,26 @@ export default function AdminSEO() {
                   <img src={formData.logoUrl} alt="Logo preview" className="h-12 object-contain" />
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* API Settings */}
+        <section>
+          <h3 className="font-bold text-lg text-slate-900 mb-4 pb-2 border-b border-slate-200">외부 API 연동 설정</h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">카카오 자바스크립트 앱 키 (카카오톡 공유 기능)</label>
+              <input 
+                type="text" 
+                value={formData.kakaoAppKey || ''}
+                onChange={(e) => setFormData({...formData, kakaoAppKey: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none font-mono text-sm"
+                placeholder="예: a1b2c3d4e5f6g7h8i9j0"
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                카카오 디벨로퍼스(https://developers.kakao.com)에서 발급받은 'JavaScript 키'를 입력해야 <br/>단일 기사 페이지의 카카오톡 공유가 정상 작동합니다.
+              </p>
             </div>
           </div>
         </section>

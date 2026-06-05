@@ -101,6 +101,7 @@ export const useAppStore = create<AppState>()(
       seoSettings: {
         siteName: 'DAILY PULSE',
         logoUrl: '',
+        kakaoAppKey: '',
         title: '데일리 펄스 | 신뢰할 수 있는 뉴스',
         description: '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.',
         keywords: '뉴스, 건강, 척추관절, 여성건강, 한의학, 건강검진',
