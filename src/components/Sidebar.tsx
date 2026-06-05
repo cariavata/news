@@ -2,7 +2,7 @@ import { TrendingUp, LayoutGrid } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
 
 export default function Sidebar() {
-  const { articles, adBanner } = useAppStore();
+  const { articles, adBanners } = useAppStore();
   const trending = articles
     .filter(a => a.isTrending)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -38,14 +38,18 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* Ad Placeholder Banner Slot */}
-      {adBanner.imageUrl ? (
-        <a href={adBanner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group">
-          <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
-            광고
-          </div>
-          <img src={adBanner.imageUrl} alt="Advertisement" className="w-full h-auto object-cover border border-slate-200" />
-        </a>
+      {/* Ad Banners Slot */}
+      {adBanners.length > 0 ? (
+        <div className="flex flex-col gap-6">
+          {adBanners.map(banner => (
+            <a key={banner.id} href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group">
+              <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
+                광고
+              </div>
+              <img src={banner.imageUrl} alt="Advertisement" className="w-full h-auto object-cover border border-slate-200" />
+            </a>
+          ))}
+        </div>
       ) : (
         <div className="bg-slate-100 hover:bg-slate-200 transition-colors border border-slate-200 h-[400px] flex flex-col items-center justify-center text-center p-6 relative group cursor-pointer">
           <div className="absolute top-2 right-2 text-slate-400 text-[10px] uppercase font-bold tracking-widest">

@@ -17,8 +17,9 @@ interface AppState {
   updateArticle: (id: string, article: Partial<Article>) => void;
   deleteArticle: (id: string) => void;
 
-  adBanner: AdBanner;
-  updateAdBanner: (banner: AdBanner) => void;
+  adBanners: AdBanner[];
+  addAdBanner: (banner: Omit<AdBanner, "id">) => void;
+  deleteAdBanner: (id: string) => void;
 
   seoSettings: SeoSettings;
   updateSeoSettings: (settings: SeoSettings) => void;
@@ -57,8 +58,13 @@ export const useAppStore = create<AppState>()(
         articles: state.articles.filter(article => article.id !== id)
       })),
 
-      adBanner: { imageUrl: '', linkUrl: '' },
-      updateAdBanner: (banner) => set({ adBanner: banner }),
+      adBanners: [],
+      addAdBanner: (bannerData) => set((state) => ({
+        adBanners: [...state.adBanners, { ...bannerData, id: uuidv4() }]
+      })),
+      deleteAdBanner: (id) => set((state) => ({
+        adBanners: state.adBanners.filter(b => b.id !== id)
+      })),
 
       seoSettings: {
         title: '데일리 펄스 | 신뢰할 수 있는 뉴스',

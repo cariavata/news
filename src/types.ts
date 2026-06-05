@@ -4,6 +4,7 @@ export interface CategoryInfo {
 }
 
 export interface AdBanner {
+  id: string;
   imageUrl: string;
   linkUrl: string;
 }
