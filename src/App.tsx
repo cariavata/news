@@ -12,6 +12,7 @@ import AdminSEO from './pages/AdminSEO';
 import AdminAnalytics from './pages/AdminAnalytics';
 import ArticleDetail from './pages/ArticleDetail';
 import CategoryView from './pages/CategoryView';
+import SearchResults from './pages/SearchResults';
 import { useAppStore } from './store/useArticleStore';
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="/article/:id" element={<ArticleDetail />} />
           <Route path="/category/:categoryId" element={<CategoryView />} />
           <Route path="/admin/login" element={<AdminLogin />} />
