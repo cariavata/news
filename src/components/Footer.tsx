@@ -1,4 +1,9 @@
+import { Link } from 'react-router-dom';
+import { useAppStore } from '../store/useArticleStore';
+
 export default function Footer() {
+  const categories = useAppStore(state => state.categories);
+
   return (
     <footer className="bg-slate-950 text-slate-400 py-16 px-4 sm:px-6 lg:px-8 mt-16 border-t-[8px] border-slate-900">
        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -10,28 +15,29 @@ export default function Footer() {
             </p>
             <div className="flex gap-4">
                {/* Social placeholders */}
-               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer" />
-               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer" />
-               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer" />
+               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer transition" />
+               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer transition" />
+               <div className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 cursor-pointer transition" />
             </div>
           </div>
 
           {/* Sections */}
           <div className="flex flex-col gap-3">
             <h4 className="text-white font-bold text-xs tracking-widest mb-3">섹션</h4>
-            <a href="#" className="text-sm hover:text-white transition">국제 뉴스</a>
-            <a href="#" className="text-sm hover:text-white transition">정치 & 경제</a>
-            <a href="#" className="text-sm text-emerald-500 hover:text-emerald-400 transition font-medium">건강 & 웰니스</a>
-            <a href="#" className="text-sm hover:text-white transition">과학 & 기술</a>
+            {categories.slice(0, 4).map(cat => (
+              <Link key={cat.id} to={`/category/${cat.id}`} className="text-sm hover:text-white transition">
+                {cat.name}
+              </Link>
+            ))}
           </div>
 
           {/* Corporate */}
           <div className="flex flex-col gap-3">
             <h4 className="text-white font-bold text-xs tracking-widest mb-3">회사 소개</h4>
-            <a href="#" className="text-sm hover:text-white transition">소개</a>
-            <a href="#" className="text-sm hover:text-white transition">편집 가이드라인</a>
-            <a href="#" className="text-sm hover:text-white transition">채용 정보</a>
-            <a href="#" className="text-sm hover:text-white transition">개인정보 처리방침 및 약관</a>
+            <Link to="/" className="text-sm hover:text-white transition">소개</Link>
+            <Link to="/" className="text-sm hover:text-white transition">편집 가이드라인</Link>
+            <Link to="/" className="text-sm hover:text-white transition">채용 정보</Link>
+            <Link to="/" className="text-sm hover:text-white transition">개인정보 처리방침 및 약관</Link>
           </div>
        </div>
 
@@ -46,3 +52,4 @@ export default function Footer() {
     </footer>
   )
 }
+

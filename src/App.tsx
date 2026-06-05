@@ -10,6 +10,8 @@ import AdminCategories from './pages/AdminCategories';
 import AdminAds from './pages/AdminAds';
 import AdminSEO from './pages/AdminSEO';
 import AdminAnalytics from './pages/AdminAnalytics';
+import ArticleDetail from './pages/ArticleDetail';
+import CategoryView from './pages/CategoryView';
 import { useAppStore } from './store/useArticleStore';
 
 export default function App() {
@@ -27,12 +29,13 @@ export default function App() {
         {seoSettings.googleAdsenseClient && (
           <meta name="google-adsense-account" content={seoSettings.googleAdsenseClient} />
         )}
-        {/* Support injecting raw html tags from SEO settings if necessary, though Helmet handles simple tags well */}
       </Helmet>
       
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/article/:id" element={<ArticleDetail />} />
+          <Route path="/category/:categoryId" element={<CategoryView />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           
           {/* Admin Routes */}

@@ -2,6 +2,7 @@ import { Clock, User, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 export default function MainContent() {
   const { articles, categories } = useAppStore();
@@ -19,8 +20,8 @@ export default function MainContent() {
     <div className="flex flex-col gap-14">
       {/* Hero Section */}
       {featuredArticle && (
-        <article className="group cursor-pointer">
-          <div className="relative overflow-hidden mb-6 bg-slate-100">
+        <Link to={`/article/${featuredArticle.id}`} className="group cursor-pointer block">
+          <div className="relative overflow-hidden mb-6 bg-slate-100 rounded-lg">
             {featuredArticle.imageUrl && (
               <img 
                 src={featuredArticle.imageUrl} 
@@ -34,13 +35,13 @@ export default function MainContent() {
             <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {formatDistanceToNow(new Date(featuredArticle.createdAt), { addSuffix: true, locale: ko })}</span>
             <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> {featuredArticle.author}</span>
           </div>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-slate-900 leading-[1.2] mb-5 group-hover:text-slate-700 transition-colors break-keep">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-serif font-bold text-slate-900 leading-[1.2] mb-5 group-hover:text-slate-700 transition-colors break-keep">
             {featuredArticle.title}
           </h1>
           <p className="text-lg text-slate-600 font-sans leading-relaxed md:w-5/6 break-keep">
             {featuredArticle.excerpt}
           </p>
-        </article>
+        </Link>
       )}
 
       {/* Health & Wellness Section - "Fresh & Trustworthy" Theme */}
@@ -52,17 +53,17 @@ export default function MainContent() {
             <h2 className="text-2xl font-serif font-bold text-slate-900">최신 주요 기사</h2>
             <span className="text-emerald-700 font-sans font-medium hidden sm:inline-block ml-2">— 건강 및 의학</span>
           </div>
-          <button className="text-xs font-bold font-sans text-emerald-700 hover:text-emerald-800 tracking-widest flex items-center gap-1 group">
+          <Link to={categories.find(c => c.id.includes('health'))?.id ? `/category/${categories.find(c => c.id.includes('health'))?.id}` : '/'} className="text-xs font-bold font-sans text-emerald-700 hover:text-emerald-800 tracking-widest flex items-center gap-1 group">
             기사 전체 보기 
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </Link>
         </div>
 
         {/* Categories Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
           
           {healthArticles.map(article => (
-            <article key={article.id} className="p-6 sm:p-8 hover:bg-slate-50/50 transition-colors group cursor-pointer flex flex-col h-full">
+            <Link to={`/article/${article.id}`} key={article.id} className="p-6 sm:p-8 hover:bg-slate-50/50 transition-colors group cursor-pointer flex flex-col h-full block">
               {article.imageUrl && (
                 <div className="rounded overflow-hidden mb-5">
                   <img src={article.imageUrl} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" alt={article.title} />
@@ -74,10 +75,10 @@ export default function MainContent() {
               <h3 className="text-xl font-serif font-bold text-slate-900 mb-3 group-hover:text-emerald-700 transition-colors leading-snug break-keep">
                 {article.title}
               </h3>
-              <p className="text-sm text-slate-500 leading-relaxed max-w-sm mt-auto break-keep">
+              <p className="text-sm text-slate-500 leading-relaxed mt-auto break-keep pt-3">
                 {article.excerpt}
               </p>
-            </article>
+            </Link>
           ))}
 
         </div>

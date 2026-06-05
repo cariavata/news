@@ -1,5 +1,6 @@
 import { TrendingUp, LayoutGrid } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
+import { Link } from 'react-router-dom';
 
 export default function Sidebar() {
   const { articles, adBanners } = useAppStore();
@@ -23,13 +24,15 @@ export default function Sidebar() {
         
         <ul className="space-y-6">
           {trending.map((article, i) => (
-            <li key={article.id} className="flex gap-4 group cursor-pointer items-start">
-              <span className="text-4xl font-bold text-slate-200 group-hover:text-slate-300 transition-colors font-serif italic leading-none mt-1">
+            <li key={article.id} className="flex gap-4 group items-start">
+              <span className="text-4xl font-bold text-slate-200 group-hover:text-slate-300 transition-colors font-serif italic leading-none mt-1 shrink-0 w-8">
                 {i + 1}
               </span>
-              <h4 className="text-slate-800 font-bold font-serif text-[17px] leading-tight group-hover:text-red-700 transition-colors break-keep">
-                {article.title}
-              </h4>
+              <Link to={`/article/${article.id}`} className="block flex-1 mt-1">
+                <h4 className="text-slate-800 font-bold font-serif text-[17px] leading-[1.3] group-hover:text-red-700 transition-colors break-keep">
+                  {article.title}
+                </h4>
+              </Link>
             </li>
           ))}
           {trending.length === 0 && (
