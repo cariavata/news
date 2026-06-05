@@ -72,8 +72,27 @@ export default function ArticleDetail() {
               <ArrowLeft className="w-5 h-5" /> 목록으로
             </button>
             <div className="flex gap-3">
-              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded transition">공유하기</button>
-              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded transition">저장하기</button>
+              <button 
+                onClick={async () => {
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: article.title,
+                        text: article.excerpt,
+                        url: window.location.href,
+                      });
+                    } else {
+                      await navigator.clipboard.writeText(window.location.href);
+                      alert('링크가 클립보드에 복사되었습니다.');
+                    }
+                  } catch (err) {
+                    console.error('Share failed:', err);
+                  }
+                }}
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded transition"
+              >
+                공유하기
+              </button>
             </div>
           </div>
         </article>

@@ -3,6 +3,12 @@ import { persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
+export interface AnalyticsData {
+  dailyViews: Record<string, number>;
+  keywords: Record<string, number>;
+  devices: Record<string, number>;
+}
+
 interface AppState {
   isAuthenticated: boolean;
   login: () => void;
@@ -28,6 +34,11 @@ interface AppState {
 
   seoSettings: SeoSettings;
   updateSeoSettings: (settings: SeoSettings) => void;
+
+  analytics: AnalyticsData;
+  trackPageView: () => void;
+  trackSearch: (keyword: string) => void;
+  resetAnalytics: () => void;
 }
 
 const defaultCategories: CategoryInfo[] = [
@@ -98,6 +109,43 @@ export const useAppStore = create<AppState>()(
         customHeadTags: ''
       },
       updateSeoSettings: (settings) => set({ seoSettings: settings }),
+
+      analytics: { dailyViews: {}, keywords: {}, devices: {} },
+      trackPageView: () => {
+        if (typeof window === 'undefined') return;
+        set((state) => {
+          const today = new Date().toISOString().split('T')[0];
+          const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+          const isTablet = /iPad|Tablet/i.test(navigator.userAgent);
+          const device = isTablet ? 'Tab' : isMobile ? 'Mo' : 'PC';
+          
+          return {
+            analytics: {
+              ...state.analytics,
+              dailyViews: {
+                ...state.analytics.dailyViews,
+                [today]: (state.analytics.dailyViews[today] || 0) + 1
+              },
+              devices: {
+                ...state.analytics.devices,
+                [device]: (state.analytics.devices[device] || 0) + 1
+              }
+            }
+          };
+        });
+      },
+      trackSearch: (keyword) => set((state) => ({
+        analytics: {
+          ...state.analytics,
+          keywords: {
+            ...state.analytics.keywords,
+            [keyword]: (state.analytics.keywords[keyword] || 0) + 1
+          }
+        }
+      })),
+      resetAnalytics: () => set({ 
+        analytics: { dailyViews: {}, keywords: {}, devices: {} } 
+      }),
     }),
     {
       name: 'daily-pulse-app-storage',

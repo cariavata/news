@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
 import Header from '../components/Header';
@@ -9,8 +10,14 @@ import { ko } from 'date-fns/locale';
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const { articles, categories } = useAppStore();
+  const { articles, categories, trackSearch } = useAppStore();
   
+  useEffect(() => {
+    if (query.trim()) {
+      trackSearch(query.trim());
+    }
+  }, [query, trackSearch]);
+
   const searchResults = articles
     .filter(a => 
       a.title.includes(query) || 
