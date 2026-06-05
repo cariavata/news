@@ -1,21 +1,54 @@
-import Header from './components/Header';
-import MainContent from './components/MainContent';
-import Sidebar from './components/Sidebar';
-import Footer from './components/Footer';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider, Helmet } from 'react-helmet-async';
+import Home from './pages/Home';
+import AdminDashboard from './pages/AdminDashboard';
+import ArticleForm from './pages/ArticleForm';
+import AdminLayout from './components/AdminLayout';
+import AdminLogin from './pages/AdminLogin';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminCategories from './pages/AdminCategories';
+import AdminAds from './pages/AdminAds';
+import AdminSEO from './pages/AdminSEO';
+import AdminAnalytics from './pages/AdminAnalytics';
+import { useAppStore } from './store/useArticleStore';
 
 export default function App() {
+  const seoSettings = useAppStore(state => state.seoSettings);
+
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="col-span-1 lg:col-span-8">
-          <MainContent />
-        </div>
-        <div className="col-span-1 lg:col-span-4">
-          <Sidebar />
-        </div>
-      </main>
-      <Footer />
-    </div>
+    <HelmetProvider>
+      <Helmet>
+        <title>{seoSettings.title}</title>
+        <meta name="description" content={seoSettings.description} />
+        <meta name="keywords" content={seoSettings.keywords} />
+        {seoSettings.naverSiteVerification && (
+          <meta name="naver-site-verification" content={seoSettings.naverSiteVerification} />
+        )}
+        {seoSettings.googleAdsenseClient && (
+          <meta name="google-adsense-account" content={seoSettings.googleAdsenseClient} />
+        )}
+        {/* Support injecting raw html tags from SEO settings if necessary, though Helmet handles simple tags well */}
+      </Helmet>
+      
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          
+          {/* Admin Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="ads" element={<AdminAds />} />
+              <Route path="seo" element={<AdminSEO />} />
+              <Route path="article/new" element={<ArticleForm />} />
+              <Route path="article/:id" element={<ArticleForm />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }

@@ -1,0 +1,32 @@
+export interface CategoryInfo {
+  id: string;
+  name: string;
+}
+
+export interface AdBanner {
+  imageUrl: string;
+  linkUrl: string;
+}
+
+export interface SeoSettings {
+  title: string;
+  description: string;
+  keywords: string;
+  naverSiteVerification: string;
+  googleAdsenseClient: string;
+  customHeadTags: string;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  categoryId: string;
+  imageUrl: string;
+  author: string;
+  createdAt: string; // ISO date string
+  isFeatured: boolean; // Shows in the main hero section
+  isTrending: boolean; // Shows in the sidebar most read
+  isBreaking: boolean; // Shows in the top breaking ticker
+}

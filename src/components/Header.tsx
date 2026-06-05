@@ -1,6 +1,11 @@
 import { Search, Menu, Bell } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAppStore } from '../store/useArticleStore';
 
 export default function Header() {
+  const { articles, categories } = useAppStore();
+  const breakingNews = articles.filter(a => a.isBreaking).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
   const dateOptions: Intl.DateTimeFormatOptions = { 
     weekday: 'long', 
     year: 'numeric', 
@@ -17,7 +22,7 @@ export default function Header() {
           <span>{today}</span>
         </div>
         <div className="flex gap-4">
-          <a href="#" className="hover:text-white transition">관리자 로그인</a>
+          <Link to="/admin/login" className="hover:text-white transition">관리자 로그인</Link>
         </div>
       </div>
 
@@ -28,33 +33,37 @@ export default function Header() {
           <button className="hover:text-slate-900" aria-label="Search"><Search className="w-5 h-5" /></button>
         </div>
 
-        <h1 className="text-[2.5rem] md:text-6xl lg:text-7xl font-serif font-extrabold text-slate-900 tracking-tight text-center">
-          데일리 펄스
-        </h1>
+        <Link to="/">
+          <h1 className="text-[2.5rem] md:text-6xl lg:text-7xl font-serif font-extrabold text-slate-900 tracking-tight text-center">
+            데일리 펄스
+          </h1>
+        </Link>
       </div>
 
       {/* Main Nav */}
       <nav className="bg-white border-b-4 border-slate-900 px-4 sm:px-6 lg:px-8 py-3 relative z-10">
          <ul className="flex justify-center flex-wrap gap-x-8 gap-y-3 text-sm font-bold tracking-widest text-slate-700">
-            <li><a href="#" className="hover:text-slate-900 transition">국제</a></li>
-            <li><a href="#" className="hover:text-slate-900 transition">정치</a></li>
-            <li><a href="#" className="hover:text-slate-900 transition">경제</a></li>
-            {/* Health Nav Item - Mint/Sage Accent */}
-            <li><a href="#" className="text-emerald-700 hover:text-emerald-800 transition">건강/의학</a></li>
-            <li><a href="#" className="hover:text-slate-900 transition">기술</a></li>
-            <li><a href="#" className="hover:text-slate-900 transition">과학</a></li>
+            {categories.map(cat => (
+              <li key={cat.id}>
+                <Link to="/" className="hover:text-slate-900 transition">
+                  {cat.name}
+                </Link>
+              </li>
+            ))}
          </ul>
       </nav>
 
       {/* Breaking Ticker */}
-      <div className="bg-red-700 text-white px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-4 shadow-inner">
-        <span className="font-bold text-xs tracking-wider bg-white text-red-700 px-2 py-0.5 rounded-sm shrink-0 flex items-center gap-1">
-          <Bell className="w-3 h-3" /> 속보
-        </span>
-         <p className="text-sm font-medium line-clamp-1 hover:underline cursor-pointer">
-           글로벌 헬스케어 연합, 예방 진단 영상 기술의 주요 혁신 발표로 시장 활력 기대...
-         </p>
-      </div>
+      {breakingNews && (
+        <div className="bg-red-700 text-white px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-4 shadow-inner">
+          <span className="font-bold text-xs tracking-wider bg-white text-red-700 px-2 py-0.5 rounded-sm shrink-0 flex items-center gap-1">
+            <Bell className="w-3 h-3" /> 속보
+          </span>
+          <p className="text-sm font-medium line-clamp-1 hover:underline cursor-pointer">
+            {breakingNews.title}
+          </p>
+        </div>
+      )}
     </header>
   )
 }
