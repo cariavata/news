@@ -17,6 +17,7 @@ import AdminCompanyPages from './pages/AdminCompanyPages';
 import AdminCompanyPageForm from './pages/AdminCompanyPageForm';
 import CompanyPageView from './pages/CompanyPageView';
 import ScrollToTop from './components/ScrollToTop';
+import FirebaseSync from './components/FirebaseSync';
 import { useAppStore } from './store/useArticleStore';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
 
   return (
     <HelmetProvider>
+      <FirebaseSync />
       <Helmet>
         <title>{seoSettings.title}</title>
         <meta name="description" content={seoSettings.description} />

@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "Article": {
+      "title": "Article",
+      "description": "A news article or post",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": ["string", "null"] },
+        "author": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "readTime": { "type": "number" },
+        "likes": { "type": "number" }
+      },
+      "required": ["title", "excerpt", "content", "category", "author", "createdAt", "readTime", "likes"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Category for articles",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "CompanyPage": {
+      "title": "CompanyPage",
+      "description": "Informational pages for the company",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" }
+      },
+      "required": ["title", "content"]
+    },
+    "SeoSettings": {
+      "title": "SeoSettings",
+      "description": "Settings for SEO",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "keywords": { "type": "string" },
+        "naverSiteVerification": { "type": "string" },
+        "googleAdsenseClient": { "type": "string" },
+        "customHeadTags": { "type": "string" }
+      },
+      "required": ["siteName", "logoUrl", "title", "description", "keywords", "naverSiteVerification", "googleAdsenseClient", "customHeadTags"]
+    },
+    "AdBanner": {
+      "title": "AdBanner",
+      "description": "Ad banners",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string" },
+        "linkUrl": { "type": "string" },
+        "position": { "type": "string", "enum": ["header", "sidebar", "footer", "in-article"] },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["imageUrl", "linkUrl", "position", "isActive"]
+    }
+  },
+  "firestore": {
+    "/articles/{articleId}": {
+      "schema": { "$ref": "#/entities/Article" },
+      "description": "News articles"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Categories for articles"
+    },
+    "/companyPages/{pageId}": {
+      "schema": { "$ref": "#/entities/CompanyPage" },
+      "description": "Static informational pages"
+    },
+    "/settings/seo": {
+      "schema": { "$ref": "#/entities/SeoSettings" },
+      "description": "Global SEO settings"
+    },
+    "/adBanners/{bannerId}": {
+      "schema": { "$ref": "#/entities/AdBanner" },
+      "description": "Ad banners to display"
+    }
+  }
+}

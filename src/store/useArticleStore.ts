@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { db } from '../lib/firebase';
+import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export interface AnalyticsData {
   dailyViews: Record<string, number>;
@@ -56,31 +58,46 @@ export const useAppStore = create<AppState>()(
       logout: () => set({ isAuthenticated: false }),
 
       categories: defaultCategories,
-      addCategory: (name) => set((state) => ({
-        categories: [...state.categories, { id: uuidv4(), name }]
-      })),
-      deleteCategory: (id) => set((state) => ({
-        categories: state.categories.filter(c => c.id !== id)
-      })),
+      addCategory: (name) => {
+        const id = uuidv4();
+        const obj = { id, name };
+        setDoc(doc(db, 'categories', id), obj);
+        set((state) => ({ categories: [...state.categories, obj] }));
+      },
+      deleteCategory: (id) => {
+        deleteDoc(doc(db, 'categories', id));
+        set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
+      },
 
       articles: [],
-      addArticle: (articleData) => set((state) => ({
-        articles: [{ ...articleData, id: uuidv4(), createdAt: new Date().toISOString() }, ...state.articles]
-      })),
-      updateArticle: (id, updatedArticle) => set((state) => ({
-        articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article)
-      })),
-      deleteArticle: (id) => set((state) => ({
-        articles: state.articles.filter(article => article.id !== id)
-      })),
+      addArticle: (articleData) => {
+        const id = uuidv4();
+        const obj = { ...articleData, id, createdAt: new Date().toISOString() };
+        setDoc(doc(db, 'articles', id), obj);
+        set((state) => ({ articles: [obj, ...state.articles] }));
+      },
+      updateArticle: (id, updatedArticle) => {
+        updateDoc(doc(db, 'articles', id), updatedArticle);
+        set((state) => ({
+          articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article)
+        }));
+      },
+      deleteArticle: (id) => {
+        deleteDoc(doc(db, 'articles', id));
+        set((state) => ({ articles: state.articles.filter(article => article.id !== id) }));
+      },
 
       adBanners: [],
-      addAdBanner: (bannerData) => set((state) => ({
-        adBanners: [...state.adBanners, { ...bannerData, id: uuidv4() }]
-      })),
-      deleteAdBanner: (id) => set((state) => ({
-        adBanners: state.adBanners.filter(b => b.id !== id)
-      })),
+      addAdBanner: (bannerData) => {
+        const id = uuidv4();
+        const obj = { ...bannerData, id };
+        setDoc(doc(db, 'adBanners', id), obj);
+        set((state) => ({ adBanners: [...state.adBanners, obj] }));
+      },
+      deleteAdBanner: (id) => {
+        deleteDoc(doc(db, 'adBanners', id));
+        set((state) => ({ adBanners: state.adBanners.filter(b => b.id !== id) }));
+      },
 
       companyPages: [
         { id: 'about', title: '소개', content: '회사 소개 내용입니다.' },
@@ -88,15 +105,22 @@ export const useAppStore = create<AppState>()(
         { id: 'careers', title: '채용 정보', content: '채용 정보 내용입니다.' },
         { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '약관 내용입니다.' },
       ],
-      addCompanyPage: (pageData) => set((state) => ({
-        companyPages: [...state.companyPages, { ...pageData, id: uuidv4() }]
-      })),
-      updateCompanyPage: (id, pageData) => set((state) => ({
-        companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...pageData } : page)
-      })),
-      deleteCompanyPage: (id) => set((state) => ({
-        companyPages: state.companyPages.filter(p => p.id !== id)
-      })),
+      addCompanyPage: (pageData) => {
+        const id = uuidv4();
+        const obj = { ...pageData, id };
+        setDoc(doc(db, 'companyPages', id), obj);
+        set((state) => ({ companyPages: [...state.companyPages, obj] }));
+      },
+      updateCompanyPage: (id, pageData) => {
+        updateDoc(doc(db, 'companyPages', id), pageData);
+        set((state) => ({
+          companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...pageData } : page)
+        }));
+      },
+      deleteCompanyPage: (id) => {
+        deleteDoc(doc(db, 'companyPages', id));
+        set((state) => ({ companyPages: state.companyPages.filter(p => p.id !== id) }));
+      },
 
       seoSettings: {
         siteName: 'DAILY PULSE',
@@ -108,7 +132,10 @@ export const useAppStore = create<AppState>()(
         googleAdsenseClient: '',
         customHeadTags: ''
       },
-      updateSeoSettings: (settings) => set({ seoSettings: settings }),
+      updateSeoSettings: (settings) => {
+        setDoc(doc(db, 'settings', 'seo'), settings);
+        set({ seoSettings: settings });
+      },
 
       analytics: { dailyViews: {}, keywords: {}, devices: {} },
       trackPageView: () => {
