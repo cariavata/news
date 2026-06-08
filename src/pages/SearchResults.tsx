@@ -40,7 +40,7 @@ export default function SearchResults() {
       </div>
       
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="col-span-1 lg:col-span-8 flex flex-col gap-8">
+        <div className="col-span-1 lg:col-span-9 flex flex-col gap-8">
           {searchResults.length === 0 ? (
             <div className="bg-white p-12 text-center rounded-lg border border-slate-200">
               <p className="text-slate-500 font-medium font-sans">"{query}"에 대한 검색 결과가 없습니다.</p>
@@ -78,7 +78,7 @@ export default function SearchResults() {
           )}
         </div>
         
-        <div className="col-span-1 lg:col-span-4">
+        <div className="col-span-1 lg:col-span-3">
           <Sidebar />
         </div>
       </main>

@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useArticleStore';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import OpinionSection from './OpinionSection';
 
 export default function MainContent() {
   const { articles, categories } = useAppStore();
@@ -10,7 +11,7 @@ export default function MainContent() {
   
   // Get up to 3 health articles
   const healthArticles = articles
-    .filter(a => a.categoryId.includes('health') || categories.some(c => c.id === a.categoryId))
+    .filter(a => a.categoryId.includes('health') || categories.some(c => c.id === a.categoryId && c.id !== 'opinion'))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
 
@@ -83,6 +84,9 @@ export default function MainContent() {
 
         </div>
       </section>
+
+      {/* Expert Column / Opinion Section */}
+      <OpinionSection />
     </div>
   )
 }

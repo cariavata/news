@@ -13,6 +13,8 @@ export interface AdBanner {
   id: string;
   imageUrl: string;
   linkUrl: string;
+  type?: 'image' | 'adsense';
+  adsenseSlot?: string;
 }
 
 export interface SeoSettings {
@@ -45,4 +47,5 @@ export interface Article {
   isFeatured: boolean; // Shows in the main hero section
   isTrending: boolean; // Shows in the sidebar most read
   isBreaking: boolean; // Shows in the top breaking ticker
+  views?: number; // Total article views
 }

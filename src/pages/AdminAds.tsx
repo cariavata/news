@@ -4,16 +4,20 @@ import { Trash2 } from 'lucide-react';
 
 export default function AdminAds() {
   const { adBanners, addAdBanner, deleteAdBanner } = useAppStore();
-  const [formData, setFormData] = useState({ imageUrl: '', linkUrl: '' });
+  const [formData, setFormData] = useState<{imageUrl: string, linkUrl: string, type?: 'image'|'adsense', adsenseSlot?: string}>({ imageUrl: '', linkUrl: '', type: 'image' });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.imageUrl) {
+    if (formData.type === 'adsense' && !formData.adsenseSlot) {
+      alert('애드센스 광고 슬롯을 입력해주세요.');
+      return;
+    }
+    if (formData.type !== 'adsense' && !formData.imageUrl) {
       alert('이미지를 등록해주세요.');
       return;
     }
     addAdBanner(formData);
-    setFormData({ imageUrl: '', linkUrl: '' }); // Reset form
+    setFormData({ imageUrl: '', linkUrl: '', type: 'image', adsenseSlot: '' }); // Reset form
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,20 +42,56 @@ export default function AdminAds() {
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-200 bg-slate-50">
           <h1 className="text-xl font-bold font-sans text-slate-800">광고 배너 추가</h1>
-          <p className="text-sm text-slate-500 mt-2">새로운 광고 배너를 추가합니다. 이미지는 URL을 직접 등록하거나 내 컴퓨터에서 업로드할 수 있습니다.</p>
+          <p className="text-sm text-slate-500 mt-2">새로운 광고 배너를 추가합니다. 배너 이미지나 구글 애드센스 슬롯을 선택 등록할 수 있습니다.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <label className="font-bold text-sm text-slate-700">배너 이미지 (권장 비율 1:1 또는 4:5)</label>
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <label className="font-bold text-sm text-slate-700">배너 종류</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  checked={formData.type !== 'adsense'} 
+                  onChange={() => setFormData({ ...formData, type: 'image' })} 
+                />
+                <span className="text-sm font-medium">일반 이미지 배너</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  checked={formData.type === 'adsense'} 
+                  onChange={() => setFormData({ ...formData, type: 'adsense' })} 
+                />
+                <span className="text-sm font-medium">구글 애드센스</span>
+              </label>
+            </div>
+          </div>
+
+          {formData.type === 'adsense' ? (
+            <div className="flex flex-col gap-2">
+              <label className="font-bold text-sm text-slate-700">애드센스 광고 슬롯 (data-ad-slot)</label>
               <input 
-                type="url" 
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full"
-                placeholder="외부 이미지 URL (https://...)"
+                type="text" 
+                value={formData.adsenseSlot || ''}
+                onChange={(e) => setFormData({...formData, adsenseSlot: e.target.value})}
+                className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition w-full"
+                placeholder="예: 1234567890"
               />
+              <span className="text-xs text-slate-500">SEO 설정에서 애드센스 클라이언트 ID (ca-pub-...)가 입력되어 있어야 출력됩니다.</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="font-bold text-sm text-slate-700">배너 이미지 (권장 비율 1:1 또는 4:5)</label>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <input 
+                    type="url" 
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full"
+                    placeholder="외부 이미지 URL (https://...)"
+                  />
               <span className="text-slate-400 font-bold shrink-0">OR</span>
               <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
                 <span>내 컴퓨터에서 사진 불러오기</span>
@@ -65,16 +105,18 @@ export default function AdminAds() {
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="font-bold text-sm text-slate-700">연결될 링크 (클릭 시 이동할 주소)</label>
-            <input 
-              type="url" 
-              value={formData.linkUrl}
-              onChange={(e) => setFormData({...formData, linkUrl: e.target.value})}
-              className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
-              placeholder="https://google.com"
-            />
-          </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-bold text-sm text-slate-700">연결될 링크 (클릭 시 이동할 주소)</label>
+                <input 
+                  type="url" 
+                  value={formData.linkUrl}
+                  onChange={(e) => setFormData({...formData, linkUrl: e.target.value})}
+                  className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
+                  placeholder="https://google.com"
+                />
+              </div>
+            </>
+          )}
 
           <div className="mt-4 pt-6 border-t border-slate-200 flex justify-end">
             <button type="submit" className="bg-slate-900 text-white font-bold px-8 py-3 rounded-md hover:bg-slate-800 transition">
@@ -95,10 +137,19 @@ export default function AdminAds() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {adBanners.map(banner => (
                 <div key={banner.id} className="border border-slate-200 rounded-md p-4 bg-slate-50 relative group">
-                  <img src={banner.imageUrl} alt="banner" className="w-full h-auto object-cover rounded mb-4" />
-                  <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-700 hover:text-slate-900 truncate block">
-                    {banner.linkUrl || '링크 없음'}
-                  </a>
+                  {banner.type === 'adsense' ? (
+                     <div className="w-full h-32 bg-slate-100 flex flex-col items-center justify-center border border-slate-200 mb-4 rounded text-slate-900 font-bold">
+                       <span>구글 애드센스 배너</span>
+                       <span className="text-xs font-normal mt-1 text-slate-600">Slot: {banner.adsenseSlot}</span>
+                     </div>
+                  ) : (
+                    <img src={banner.imageUrl} alt="banner" className="w-full h-auto object-cover rounded mb-4" />
+                  )}
+                  {banner.type !== 'adsense' && (
+                    <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-700 hover:text-slate-900 truncate block">
+                      {banner.linkUrl || '링크 없음'}
+                    </a>
+                  )}
                   <button 
                     onClick={() => handleDelete(banner.id)}
                     className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 shadow"

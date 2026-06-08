@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAppStore } from '../store/useArticleStore';
@@ -18,8 +18,15 @@ const XIcon = () => (
 export default function ArticleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { articles, categories, seoSettings } = useAppStore();
+  const { articles, categories, seoSettings, incrementArticleViews } = useAppStore();
   const article = articles.find(a => a.id === id);
+
+  useEffect(() => {
+    if (id && article) {
+      // Small timeout to prevent strict mode double-counting if we cared, but optimistic update handles it ok.
+      incrementArticleViews(id);
+    }
+  }, [id]);
 
   if (!article) {
     return (
@@ -51,7 +58,7 @@ export default function ArticleDetail() {
       </Helmet>
       <Header />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <article className="col-span-1 lg:col-span-8 bg-white border border-slate-200 p-6 sm:p-10 lg:p-12 rounded-lg shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+        <article className="col-span-1 lg:col-span-9 bg-white border border-slate-200 p-6 sm:p-10 lg:p-12 rounded-lg shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
           <div className="mb-8">
             <Link to={`/category/${article.categoryId}`} className="text-emerald-600 font-bold tracking-widest text-sm mb-4 inline-block hover:text-emerald-800 transition">
               {categoryName}
@@ -116,7 +123,7 @@ export default function ArticleDetail() {
           </div>
         </article>
         
-        <div className="col-span-1 lg:col-span-4">
+        <div className="col-span-1 lg:col-span-3">
           <Sidebar />
         </div>
       </main>

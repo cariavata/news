@@ -83,8 +83,8 @@ export default function Header() {
       )}
 
       {/* Main Nav (Desktop) & Mobile Draw Menu */}
-      <nav className={`bg-white border-b-4 border-slate-900 px-4 sm:px-6 lg:px-8 py-3 relative z-10 transition-all ${isMenuOpen ? 'block' : 'hidden md:block'}`}>
-         <ul className={`flex ${isMenuOpen ? 'flex-col gap-6 py-4' : 'justify-center flex-wrap gap-x-8 gap-y-3'} text-sm font-bold tracking-widest text-slate-700`}>
+      <nav className={`bg-white border-b-4 border-slate-900 px-4 sm:px-6 lg:px-8 py-4 relative z-10 transition-all ${isMenuOpen ? 'block' : 'hidden md:block'}`}>
+         <ul className={`flex ${isMenuOpen ? 'flex-col gap-6 py-4' : 'justify-center flex-wrap gap-x-10 gap-y-3'} text-base md:text-lg font-bold tracking-widest text-slate-700`}>
             {categories.map(cat => (
               <li key={cat.id}>
                 <Link to={`/category/${cat.id}`} className="hover:text-slate-900 transition block text-center md:inline">

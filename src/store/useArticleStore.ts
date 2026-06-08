@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../lib/firebase';
-import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, updateDoc, increment } from 'firebase/firestore';
 
 export interface AnalyticsData {
   dailyViews: Record<string, number>;
@@ -24,6 +24,7 @@ interface AppState {
   addArticle: (article: Omit<Article, 'id' | 'createdAt'>) => void;
   updateArticle: (id: string, article: Partial<Article>) => void;
   deleteArticle: (id: string) => void;
+  incrementArticleViews: (id: string) => void;
 
   adBanners: AdBanner[];
   addAdBanner: (banner: Omit<AdBanner, "id">) => void;
@@ -47,7 +48,8 @@ const defaultCategories: CategoryInfo[] = [
   { id: 'spine-joint', name: '척추관절' },
   { id: 'womens-health', name: '여성건강' },
   { id: 'oriental-med', name: '한의학' },
-  { id: 'checkup', name: '건강검진' }
+  { id: 'checkup', name: '건강검진' },
+  { id: 'opinion', name: '오피니언' }
 ];
 
 export const useAppStore = create<AppState>()(
@@ -85,6 +87,16 @@ export const useAppStore = create<AppState>()(
       deleteArticle: (id) => {
         deleteDoc(doc(db, 'articles', id)).catch(e => console.error("Error deleting article: ", e));
         set((state) => ({ articles: state.articles.filter(article => article.id !== id) }));
+      },
+      incrementArticleViews: (id: string) => {
+        // Optimistic update
+        set((state) => ({
+          articles: state.articles.map(article => 
+            article.id === id ? { ...article, views: (article.views || 0) + 1 } : article
+          )
+        }));
+        // Update in DB safely with increment
+        updateDoc(doc(db, 'articles', id), { views: increment(1) }).catch(e => console.error("Error incrementing views: ", e));
       },
 
       adBanners: [],
