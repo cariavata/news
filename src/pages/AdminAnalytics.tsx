@@ -9,7 +9,7 @@ import { RotateCcw } from 'lucide-react';
 
 export default function AdminAnalytics() {
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
-  const { analytics, resetAnalytics } = useAppStore();
+  const { analytics, globalSearchKeywords, resetAnalytics } = useAppStore();
 
   const handleReset = () => {
     if (window.confirm('모든 방문자 통계 및 검색어 기록을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
@@ -39,8 +39,7 @@ export default function AdminAnalytics() {
     return generateChartData(7);
   };
 
-  const keywords = Object.entries(analytics.keywords)
-    .map(([word, count]) => ({ word, count }))
+  const keywords = [...globalSearchKeywords]
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
@@ -112,7 +111,7 @@ export default function AdminAnalytics() {
                 <li key={i} className="flex justify-between items-center group">
                   <div className="flex items-center gap-3">
                     <span className="text-slate-400 font-serif font-bold italic text-lg w-6">{i + 1}</span>
-                    <span className="font-medium text-slate-700 group-hover:text-slate-900">{kw.word}</span>
+                    <span className="font-medium text-slate-700 group-hover:text-slate-900">{kw.keyword}</span>
                   </div>
                   <span className="bg-slate-100 text-slate-600 px-2 py-1 flex items-center justify-center rounded text-xs font-mono font-bold">
                     {kw.count.toLocaleString()}건

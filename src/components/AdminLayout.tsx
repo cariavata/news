@@ -26,6 +26,9 @@ export default function AdminLayout() {
           <Link to="/admin/article/new" className="flex items-center gap-3 hover:text-white hover:bg-slate-800 px-2 py-2 rounded-md transition">
             <PlusCircle className="w-5 h-5" /> 새 기사 작성
           </Link>
+          <Link to="/admin/opinions" className="flex items-center gap-3 hover:text-white hover:bg-slate-800 px-2 py-2 rounded-md transition">
+            <FileText className="w-5 h-5" /> 오피니언 관리
+          </Link>
           <Link to="/admin/categories" className="flex items-center gap-3 hover:text-white hover:bg-slate-800 px-2 py-2 rounded-md transition">
             <LayoutList className="w-5 h-5" /> 카테고리 관리
           </Link>
@@ -41,6 +44,9 @@ export default function AdminLayout() {
           </Link>
           <Link to="/admin/company-pages" className="flex items-center gap-3 hover:text-white hover:bg-slate-800 px-2 py-2 rounded-md transition">
             <FileText className="w-5 h-5" /> 회사 정보 관리
+          </Link>
+          <Link to="/admin/inquiries" className="flex items-center gap-3 hover:text-white hover:bg-slate-800 px-2 py-2 rounded-md transition">
+            <FileText className="w-5 h-5" /> 광고 문의 관리
           </Link>
           <Link to="/admin/analytics" className="flex items-center gap-3 hover:text-white hover:bg-slate-800 px-2 py-2 rounded-md transition">
             <BarChart2 className="w-5 h-5" /> 방문자 통계

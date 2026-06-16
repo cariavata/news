@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAppStore } from '../store/useArticleStore';
 import { Link } from 'react-router-dom';
 import { ArrowRight, User } from 'lucide-react';
 
 export default function OpinionSection() {
-  const { articles } = useAppStore();
+  const { articles, fetchArticlesByCategory, categoryFetchStatus } = useAppStore();
+  
+  useEffect(() => {
+    fetchArticlesByCategory('opinion');
+  }, [fetchArticlesByCategory]);
+
   const opinionArticles = articles
     .filter(a => a.categoryId === 'opinion')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -27,21 +32,31 @@ export default function OpinionSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-800">
           {opinionArticles.map(article => (
             <Link to={`/article/${article.id}`} key={article.id} className="p-6 hover:bg-slate-800 transition-colors group cursor-pointer flex flex-col h-full block">
-              {article.imageUrl ? (
-                <div className="w-12 h-12 rounded-full overflow-hidden mb-4 border-2 border-slate-700">
-                  <img src={article.imageUrl} className="w-full h-full object-cover" alt={article.author} />
+              {article.doctorImage || article.imageUrl ? (
+                <div className="w-32 h-32 rounded-2xl overflow-hidden mb-5 border border-slate-700 shrink-0 shadow-md">
+                  <img src={article.doctorImage || article.imageUrl} className="w-full h-full object-cover" alt={article.doctorName || article.author} />
                 </div>
               ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mb-4 border-2 border-slate-700 text-slate-500 shrink-0">
-                  <User className="w-6 h-6" />
+                <div className="w-32 h-32 rounded-2xl bg-slate-800 flex items-center justify-center mb-5 border border-slate-700 text-slate-500 shrink-0 shadow-md">
+                  <User className="w-12 h-12" />
                 </div>
               )}
-              <h3 className="text-lg font-serif font-bold text-slate-100 mb-2 group-hover:text-blue-400 transition-colors leading-snug break-keep">
+              <h3 className="text-lg font-serif font-bold text-slate-100 mb-3 group-hover:text-blue-400 transition-colors leading-snug break-keep">
                 {article.title}
               </h3>
-              <span className="text-blue-400 text-xs font-bold tracking-widest block mt-auto">
-                {article.author || '전문가'}
+              {article.doctorSpecialty && (
+                <span className="text-emerald-400 text-xs font-medium tracking-widest block mb-1 mt-auto">
+                  {article.doctorSpecialty}
+                </span>
+              )}
+              <span className="text-blue-400 text-sm font-bold tracking-widest block">
+                {article.doctorName || article.author || '전문가'}
               </span>
+              {article.hospitalName && (
+                <span className="text-slate-400 text-xs font-medium tracking-wide block mt-1">
+                  {article.hospitalName}
+                </span>
+              )}
             </Link>
           ))}
         </div>

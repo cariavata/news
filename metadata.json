@@ -1,6 +1,6 @@
 {
   "name": "The Daily Pulse",
-  "description": "Modern online newspaper prototype with trustworthy typography and a fresh Health & Wellness layout.",
+  "description": "Modern online newspaper prototype with trustworthy typography and layouts.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useArticleStore';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 
 export default function AdminCategories() {
-  const { categories, addCategory, deleteCategory } = useAppStore();
+  const { categories, addCategory, deleteCategory, updateCategory } = useAppStore();
   const [newCat, setNewCat] = useState('');
 
   const handleAdd = (e: React.FormEvent) => {
@@ -18,6 +18,42 @@ export default function AdminCategories() {
     if (window.confirm("카테고리를 삭제하시겠습니까? (연결된 기사의 카테고리가 비게 될 수 있습니다)")) {
       deleteCategory(id);
     }
+  };
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const currentCats = [...categories];
+    // Ensure all have order
+    currentCats.forEach((c, i) => { if (c.order === undefined) c.order = i; });
+    
+    const prevCat = currentCats[index - 1];
+    const currCat = currentCats[index];
+    
+    // Swap orders
+    const tempOrder = prevCat.order;
+    prevCat.order = currCat.order;
+    currCat.order = tempOrder;
+    
+    updateCategory(prevCat.id, { order: prevCat.order });
+    updateCategory(currCat.id, { order: currCat.order });
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === categories.length - 1) return;
+    const currentCats = [...categories];
+    // Ensure all have order
+    currentCats.forEach((c, i) => { if (c.order === undefined) c.order = i; });
+    
+    const nextCat = currentCats[index + 1];
+    const currCat = currentCats[index];
+    
+    // Swap orders
+    const tempOrder = nextCat.order;
+    nextCat.order = currCat.order;
+    currCat.order = tempOrder;
+    
+    updateCategory(nextCat.id, { order: nextCat.order });
+    updateCategory(currCat.id, { order: currCat.order });
   };
 
   return (
@@ -41,13 +77,30 @@ export default function AdminCategories() {
           </button>
         </form>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {categories.map(cat => (
+        <div className="flex flex-col gap-3">
+          {categories.map((cat, index) => (
             <div key={cat.id} className="flex justify-between items-center bg-slate-50 p-4 border border-slate-200 rounded-md">
               <span className="font-bold text-slate-800">{cat.name}</span>
-              <button onClick={() => handleDelete(cat.id)} className="text-red-500 hover:text-red-700 p-2">
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleMoveUp(index)} 
+                  disabled={index === 0}
+                  className={`p-2 rounded-md ${index === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-800'}`}
+                >
+                  <ArrowUp className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => handleMoveDown(index)} 
+                  disabled={index === categories.length - 1}
+                  className={`p-2 rounded-md ${index === categories.length - 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-800'}`}
+                >
+                  <ArrowDown className="w-5 h-5" />
+                </button>
+                <div className="w-px h-6 bg-slate-300 mx-2"></div>
+                <button onClick={() => handleDelete(cat.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-md">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

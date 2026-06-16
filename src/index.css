@@ -11,7 +11,69 @@
     0% { transform: translateX(0%); }
     100% { transform: translateX(-100%); }
   }
+  @keyframes gradientX {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+  }
+  @keyframes floatAction {
+    0% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-30px) scale(1.05); }
+    100% { transform: translateY(0px) scale(1); }
+  }
+  @keyframes lineDiagonal1 {
+    0% { transform: translateX(-20%) translateY(-20%) rotate(35deg); opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { transform: translateX(120%) translateY(120%) rotate(35deg); opacity: 0; }
+  }
+  @keyframes lineDiagonal2 {
+    0% { transform: translateX(120%) translateY(-20%) rotate(-35deg); opacity: 0; }
+    20% { opacity: 0.6; }
+    80% { opacity: 0.6; }
+    100% { transform: translateX(-20%) translateY(120%) rotate(-35deg); opacity: 0; }
+  }
+  @keyframes slowSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes gridPerspective {
+    0% { background-position: 0px 0px; }
+    100% { background-position: 60px 60px; }
+  }
   .animate-marquee {
     animation: marquee 25s linear infinite;
+  }
+  .bg-gradient-x {
+    background-size: 200% 200%;
+    animation: gradientX 15s ease infinite;
+  }
+  .animate-float {
+    animation: floatAction 8s ease-in-out infinite;
+  }
+  .animate-float-delayed {
+    animation: floatAction 12s ease-in-out infinite 2s;
+  }
+  .animate-line-d1 {
+    animation: lineDiagonal1 10s ease-in-out infinite;
+  }
+  .animate-line-d2 {
+    animation: lineDiagonal2 14s ease-in-out infinite;
+  }
+  .animate-spin-slow {
+    animation: slowSpin 90s linear infinite;
+  }
+  .animate-grid-flow {
+    animation: gridPerspective 3s linear infinite;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }

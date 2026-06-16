@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useArticleStore';
+import { SeoSettings } from '../types';
+import { compressImage } from '../lib/imageUtils';
 
 export default function AdminSEO() {
   const { seoSettings, updateSeoSettings } = useAppStore();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SeoSettings>({
     siteName: '',
     logoUrl: '',
     title: '',
@@ -15,12 +17,19 @@ export default function AdminSEO() {
     robotsTxt: 'User-agent: *\nAllow: /',
     adsTxt: '',
     sitemapXml: '',
-    rssXml: ''
+    rssXml: '',
+    ogTitle: '',
+    ogDescription: '',
+    ogImage: '',
+    homeIntroText: '',
+    homeIntroEnabled: true
   });
 
   useEffect(() => {
     setFormData({
       ...seoSettings,
+      homeIntroText: seoSettings.homeIntroText ?? '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.',
+      homeIntroEnabled: seoSettings.homeIntroEnabled !== false,
     });
   }, [seoSettings]);
 
@@ -33,11 +42,9 @@ export default function AdminSEO() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, logoUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      compressImage(file, 400, 400, (base64) => {
+        setFormData({ ...formData, logoUrl: base64 });
+      });
     }
   };
 
@@ -63,6 +70,27 @@ export default function AdminSEO() {
                 className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
                 placeholder="예: DAILY PULSE"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">홈페이지 메인 소개 문구</label>
+              <textarea 
+                rows={2}
+                value={formData.homeIntroText || ''}
+                onChange={(e) => setFormData({...formData, homeIntroText: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none"
+                placeholder="메인 페이지의 배경 섹션에 표시될 소개 문구"
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="homeIntroEnabled"
+                  checked={formData.homeIntroEnabled !== false}
+                  onChange={(e) => setFormData({...formData, homeIntroEnabled: e.target.checked})}
+                />
+                <label htmlFor="homeIntroEnabled" className="text-sm text-slate-600 cursor-pointer">
+                  메인 페이지에 소개 문구 켜기 (비쥬얼 섹션 표시)
+                </label>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">상단 로고 이미지 (선택, 권장 비율 가로형)</label>
@@ -156,9 +184,9 @@ export default function AdminSEO() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => setFormData({ ...formData, ogImage: reader.result as string });
-                        reader.readAsDataURL(file);
+                        compressImage(file, 1200, 630, (base64) => {
+                          setFormData({ ...formData, ogImage: base64 });
+                        });
                       }
                     }} 
                   />

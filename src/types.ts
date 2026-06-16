@@ -1,6 +1,17 @@
 export interface CategoryInfo {
   id: string;
   name: string;
+  order?: number;
+}
+
+export interface Inquiry {
+  id: string;
+  companyName: string;
+  name: string;
+  phone: string;
+  email: string;
+  message: string;
+  createdAt: string; // ISO date string
 }
 
 export interface CompanyPage {
@@ -33,6 +44,8 @@ export interface SeoSettings {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  homeIntroText?: string;
+  homeIntroEnabled?: boolean;
 }
 
 export interface Article {
@@ -48,4 +61,10 @@ export interface Article {
   isTrending: boolean; // Shows in the sidebar most read
   isBreaking: boolean; // Shows in the top breaking ticker
   views?: number; // Total article views
+  doctorImage?: string; // Opt
+  doctorSpecialty?: string; // Opt
+  doctorName?: string; // Opt
+  hospitalName?: string; // Opt
+  cardNewsImages?: string[]; // Array of image URLs for card news. Order matters.
+  likes?: number; // Likes for card news
 }

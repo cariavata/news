@@ -1,25 +1,13 @@
 import React, { useState } from 'react';
-import { Search, Menu, Bell, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Menu, Bell, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
 
 export default function Header() {
-  const { articles, categories, seoSettings } = useAppStore();
+  const { articles, categories, seoSettings, isAuthenticated, isQuotaExceeded } = useAppStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
 
   const breakingNews = articles.filter(a => a.isBreaking).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery('');
-    }
-  };
 
   const dateOptions: Intl.DateTimeFormatOptions = { 
     weekday: 'long', 
@@ -31,13 +19,33 @@ export default function Header() {
 
   return (
     <header className="w-full font-sans">
+      {/* Quota Exceeded Notification Banner */}
+      {isQuotaExceeded && (
+        <div className="bg-amber-50 text-amber-900 px-4 py-2.5 text-xs md:text-sm border-b border-amber-200 font-sans flex flex-col sm:flex-row justify-between items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span>
+              <strong>데이터베이스(Firestore) 일일 무료 할당량 초과:</strong> 현재 안전한 오프라인 로컬 캐시 모드로 전환되어 동작 중입니다. 사이트 게시글은 백업 데이터로 중단 없이 안전하게 서빙됩니다.
+            </span>
+          </div>
+          <a
+            href="https://console.firebase.google.com/project/substantial-tooling-g71nt/firestore/databases/ai-studio-a726d1d9-47fc-4e22-9df4-ce73ee9ad261/data?openUpgradeDialog=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-amber-700 font-bold shrink-0 cursor-pointer"
+          >
+            Firebase 할당량 업그레이드 및 확인 &rarr;
+          </a>
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-6 lg:px-8 flex justify-between items-center border-b border-slate-800">
         <div className="flex gap-4">
           <span>{today}</span>
-        </div>
-        <div className="flex gap-4">
-          <Link to="/admin/login" className="hover:text-white transition">관리자 로그인</Link>
         </div>
       </div>
 
@@ -46,9 +54,6 @@ export default function Header() {
         <div className="absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 flex items-center gap-4 text-slate-600">
           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="hover:text-slate-900 transition" aria-label="Menu">
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-          <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="hover:text-slate-900 transition hidden md:block" aria-label="Search">
-            <Search className="w-5 h-5" />
           </button>
         </div>
 
@@ -62,25 +67,6 @@ export default function Header() {
           )}
         </Link>
       </div>
-
-      {/* Search Bar Overlay */}
-      {isSearchOpen && (
-        <div className="absolute top-[162px] md:top-[188px] left-0 w-full z-20 bg-white border-b border-slate-200 p-4 shadow-lg animate-in slide-in-from-top-2">
-          <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative">
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="검색어를 입력하세요..."
-              className="w-full bg-slate-100 border border-transparent focus:border-slate-300 rounded-full py-3 px-6 pr-12 outline-none text-slate-900 placeholder:text-slate-500 font-medium"
-              autoFocus
-            />
-            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900">
-              <Search className="w-5 h-5" />
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* Main Nav (Desktop) & Mobile Draw Menu */}
       <nav className={`bg-white border-b-4 border-slate-900 px-4 sm:px-6 lg:px-8 py-4 relative z-10 transition-all ${isMenuOpen ? 'block' : 'hidden md:block'}`}>

@@ -1,37 +1,53 @@
-import React, { useEffect } from 'react';
-import { TrendingUp, LayoutGrid } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, LayoutGrid, Search } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
-import { Link } from 'react-router-dom';
-
-declare global {
-  interface Window {
-    adsbygoogle: any[];
-  }
-}
+import { Link, useNavigate } from 'react-router-dom';
+import AdsenseBanner from './AdsenseBanner';
 
 export default function Sidebar() {
   const { articles, adBanners, seoSettings } = useAppStore();
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const { trackSearch } = useAppStore();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      trackSearch(searchQuery.trim());
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
   const trending = [...articles]
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, 5);
 
-  useEffect(() => {
-    try {
-      const adsCount = document.querySelectorAll('.adsbygoogle').length;
-      if (adsCount > 0 && typeof window !== 'undefined') {
-        const pushedAds = window.adsbygoogle?.length || 0;
-        if (pushedAds < adsCount) {
-          ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [adBanners]);
-
   return (
     <aside className="w-full flex flex-col gap-10">
       
+      {/* Search Widget */}
+      <div className="bg-white p-6 sm:p-8 border border-slate-200 rounded-none relative shadow-[4px_4px_0px_0px_rgba(15,23,42,0.05)]">
+        <div className="absolute top-0 left-0 w-full h-1 bg-slate-900" />
+        <h3 className="text-lg font-sans font-bold text-slate-900 flex items-center gap-2 mb-4 tracking-widest">
+          <Search className="w-5 h-5 text-slate-900" />
+          기사 검색
+        </h3>
+        <form onSubmit={handleSearch} className="relative">
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="검색어를 입력하세요"
+            className="w-full bg-slate-50 border border-slate-200 focus:border-slate-400 rounded-none py-3 px-4 pr-10 outline-none text-slate-900 placeholder:text-slate-400 font-medium transition-colors"
+          />
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors">
+            <Search className="w-5 h-5" />
+          </button>
+        </form>
+      </div>
+
       {/* Trending / Most Read Widget */}
       <div className="bg-white p-6 sm:p-8 border border-slate-200 rounded-none relative shadow-[4px_4px_0px_0px_rgba(15,23,42,0.05)]">
         {/* Decorative Top Accent */}
@@ -72,14 +88,10 @@ export default function Sidebar() {
                   <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10 pointer-events-none">
                     광고
                   </div>
-                  <ins 
-                    className="adsbygoogle"
-                    style={{display:"block"}}
-                    data-ad-client={seoSettings.googleAdsenseClient}
-                    data-ad-slot={banner.adsenseSlot}
-                    data-ad-format="auto"
-                    data-full-width-responsive="true"
-                  ></ins>
+                  <AdsenseBanner
+                    client={seoSettings.googleAdsenseClient}
+                    slot={banner.adsenseSlot!}
+                  />
                 </div>
               );
             }

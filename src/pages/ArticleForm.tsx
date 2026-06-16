@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
+import { compressImage } from '../lib/imageUtils';
 
 export default function ArticleForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { articles, addArticle, updateArticle, categories } = useAppStore();
   
@@ -11,12 +13,17 @@ export default function ArticleForm() {
     title: '',
     excerpt: '',
     content: '',
-    categoryId: categories[0]?.id || '',
+    categoryId: searchParams.get('category') || categories[0]?.id || '',
     imageUrl: '',
-    author: '편집국',
+    author: '데일리펄스',
     isFeatured: false,
     isTrending: false,
     isBreaking: false,
+    doctorImage: '',
+    doctorSpecialty: '',
+    doctorName: '',
+    hospitalName: '',
+    cardNewsImages: [] as string[]
   });
 
   useEffect(() => {
@@ -29,16 +36,21 @@ export default function ArticleForm() {
           content: article.content,
           categoryId: article.categoryId,
           imageUrl: article.imageUrl,
-          author: article.author,
-          isFeatured: article.isFeatured,
-          isTrending: article.isTrending,
-          isBreaking: article.isBreaking,
+          author: '데일리펄스',
+          isFeatured: article.isFeatured || false,
+          isTrending: article.isTrending || false,
+          isBreaking: article.isBreaking || false,
+          doctorImage: article.doctorImage || '',
+          doctorSpecialty: article.doctorSpecialty || '',
+          doctorName: article.doctorName || '',
+          hospitalName: article.hospitalName || '',
+          cardNewsImages: article.cardNewsImages || []
         });
       }
     } else if (categories.length > 0 && !formData.categoryId) {
-      setFormData(prev => ({ ...prev, categoryId: categories[0].id }));
+      setFormData(prev => ({ ...prev, categoryId: searchParams.get('category') || categories[0].id }));
     }
-  }, [id, articles, categories]);
+  }, [id, articles, categories, searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,11 +65,9 @@ export default function ArticleForm() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, imageUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      compressImage(file, 1200, 1200, (base64) => {
+        setFormData({ ...formData, imageUrl: base64 });
+      });
     }
   };
 
@@ -102,13 +112,83 @@ export default function ArticleForm() {
           <div className="flex flex-col gap-2">
             <label className="font-bold text-sm text-slate-700">작성자</label>
             <input 
-              required
+              readOnly
+              disabled
               type="text" 
               value={formData.author}
-              onChange={(e) => setFormData({...formData, author: e.target.value})}
-              className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
+              className="border border-slate-300 rounded-md p-3 bg-slate-100 text-slate-500 font-medium outline-none cursor-not-allowed"
             />
           </div>
+
+          {formData.categoryId === 'opinion' && (
+            <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-md p-6">
+              <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">오피니언 전문의 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="font-bold text-sm text-slate-700">전문의명</label>
+                  <input 
+                    type="text" 
+                    value={formData.doctorName}
+                    onChange={(e) => setFormData({...formData, doctorName: e.target.value})}
+                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
+                    placeholder="예: 홍길동 원장"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-bold text-sm text-slate-700">병원명</label>
+                  <input 
+                    type="text" 
+                    value={formData.hospitalName}
+                    onChange={(e) => setFormData({...formData, hospitalName: e.target.value})}
+                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
+                    placeholder="예: 서울ㅇㅇ병원"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-bold text-sm text-slate-700">진료과목 (전문의)</label>
+                  <select 
+                    value={formData.doctorSpecialty}
+                    onChange={(e) => setFormData({...formData, doctorSpecialty: e.target.value})}
+                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition bg-white"
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="정형외과전문의">정형외과전문의</option>
+                    <option value="마취통증의학과전문의">마취통증의학과전문의</option>
+                    <option value="한의사">한의사</option>
+                    <option value="산부인과전문의">산부인과전문의</option>
+                    <option value="영상의학과전문의">영상의학과전문의</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="font-bold text-sm text-slate-700">전문의 사진 (500x500 권장)</label>
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                    <input 
+                      type="url" 
+                      value={formData.doctorImage}
+                      onChange={(e) => setFormData({...formData, doctorImage: e.target.value})}
+                      className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full"
+                      placeholder="이미지 URL을 입력하세요"
+                    />
+                    <span className="text-slate-400 font-bold shrink-0">OR</span>
+                    <label className="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
+                      <span>사진 파일 업로드</span>
+                      <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          compressImage(file, 500, 500, (base64) => {
+                            setFormData({ ...formData, doctorImage: base64 });
+                          });
+                        }
+                      }} />
+                    </label>
+                  </div>
+                  {formData.doctorImage && (
+                    <img src={formData.doctorImage} alt="doctor preview" className="mt-2 w-[150px] h-[150px] object-cover rounded-md border border-slate-200" />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <label className="font-bold text-sm text-slate-700">요약문 (Excerpt)</label>
@@ -142,6 +222,85 @@ export default function ArticleForm() {
               <img src={formData.imageUrl} alt="preview" className="mt-2 h-32 w-auto object-cover rounded-md border border-slate-200" />
             )}
           </div>
+
+          {formData.categoryId === 'cardnews' && (
+            <div className="flex flex-col gap-2 md:col-span-2 bg-blue-50 border border-blue-200 rounded-md p-6">
+              <h3 className="font-bold text-slate-800 mb-2 border-b border-blue-200 pb-2">카드뉴스 이미지 (정사각형 비율 권장)</h3>
+              <p className="text-sm text-slate-600 mb-4">카드뉴스의 여러 장의 이미지를 순서대로 업로드하세요. 드래그하여 업로드된 이미지 순서를 변경할 수 있습니다.</p>
+              
+              <div className="flex flex-wrap gap-4 mb-4">
+                {formData.cardNewsImages.map((imgUrl, idx) => (
+                  <div 
+                    key={idx} 
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', idx.toString());
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                      const toIdx = idx;
+                      if (fromIdx !== toIdx) {
+                        const newArr = [...formData.cardNewsImages];
+                        const [movedItem] = newArr.splice(fromIdx, 1);
+                        newArr.splice(toIdx, 0, movedItem);
+                        setFormData({...formData, cardNewsImages: newArr});
+                      }
+                    }}
+                    className="relative group rounded-md border border-slate-300 overflow-hidden w-24 h-24 sm:w-32 sm:h-32 cursor-move"
+                  >
+                    <img src={imgUrl} alt={`Card news ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                    <div className="absolute inset-0 bg-black/50 flex flex-col justify-between p-1 opacity-0 group-hover:opacity-100 transition">
+                      <div className="flex justify-between">
+                        <button type="button" onClick={(e) => {
+                          e.stopPropagation();
+                          if (idx > 0) {
+                            const newArr = [...formData.cardNewsImages];
+                            [newArr[idx - 1], newArr[idx]] = [newArr[idx], newArr[idx - 1]];
+                            setFormData({...formData, cardNewsImages: newArr});
+                          }
+                        }} className="text-white hover:text-blue-300 px-1 disabled:opacity-50" disabled={idx === 0}>◀</button>
+                        <button type="button" onClick={(e) => {
+                          e.stopPropagation();
+                          if (idx < formData.cardNewsImages.length - 1) {
+                            const newArr = [...formData.cardNewsImages];
+                            [newArr[idx + 1], newArr[idx]] = [newArr[idx], newArr[idx + 1]];
+                            setFormData({...formData, cardNewsImages: newArr});
+                          }
+                        }} className="text-white hover:text-blue-300 px-1 disabled:opacity-50" disabled={idx === formData.cardNewsImages.length - 1}>▶</button>
+                      </div>
+                      <button type="button" onClick={(e) => {
+                        e.stopPropagation();
+                        setFormData({
+                          ...formData, 
+                          cardNewsImages: formData.cardNewsImages.filter((_, i) => i !== idx)
+                        });
+                      }} className="bg-red-500 text-white rounded text-xs py-1 mt-auto hover:bg-red-600 font-bold">삭제</button>
+                    </div>
+                    <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[10px] font-bold px-1 rounded pointer-events-none">{idx + 1}</span>
+                  </div>
+                ))}
+                
+                <label className="cursor-pointer border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-500 flex flex-col items-center justify-center rounded-md font-medium text-sm transition w-24 h-24 sm:w-32 sm:h-32">
+                  <span className="text-2xl mb-1">+</span>
+                  <span>사진 추가</span>
+                  <input type="file" className="hidden" accept="image/*" multiple onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    files.forEach(file => {
+                      compressImage(file, 1080, 1080, (base64) => {
+                        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, base64] }));
+                      });
+                    });
+                  }} />
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-4 md:col-span-2 bg-slate-50 p-4 border border-slate-200 rounded-md mt-2">
             <h3 className="font-bold text-sm text-slate-800 border-b border-slate-200 pb-2">홈페이지 노출 설정 (위치 배정)</h3>

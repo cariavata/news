@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAppStore } from '../store/useArticleStore';
@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ArrowLeft, Link as LinkIcon, Share2 } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Share2, Loader2 } from 'lucide-react';
 
 const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -18,15 +18,36 @@ const XIcon = () => (
 export default function ArticleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { articles, categories, seoSettings, incrementArticleViews } = useAppStore();
+  const { articles, categories, seoSettings, incrementArticleViews, fetchArticleById } = useAppStore();
+  const [loading, setLoading] = useState(true);
+  
   const article = articles.find(a => a.id === id);
 
   useEffect(() => {
-    if (id && article) {
-      // Small timeout to prevent strict mode double-counting if we cared, but optimistic update handles it ok.
-      incrementArticleViews(id);
-    }
-  }, [id]);
+    const init = async () => {
+      if (id) {
+        setLoading(true);
+        if (!article) {
+          await fetchArticleById(id);
+        }
+        incrementArticleViews(id);
+        setLoading(false);
+      }
+    };
+    init();
+  }, [id, fetchArticleById]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-20 px-4">
+          <Loader2 className="w-10 h-10 animate-spin text-slate-400" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!article) {
     return (
@@ -82,8 +103,8 @@ export default function ArticleDetail() {
           </div>
 
           {article.imageUrl && (
-            <div className="mb-10 rounded-lg overflow-hidden border border-slate-100 bg-slate-50">
-              <img src={article.imageUrl} alt="기사 대표 이미지" className="w-full h-auto max-h-[600px] object-cover" />
+            <div className="mb-10 mx-auto rounded-lg overflow-hidden border border-slate-100 bg-slate-50 max-w-2xl aspect-square">
+              <img src={article.imageUrl} alt="기사 대표 이미지" className="w-full h-full object-cover" />
             </div>
           )}
 
@@ -91,8 +112,28 @@ export default function ArticleDetail() {
             {article.content}
           </div>
 
+          {article.categoryId === 'opinion' && article.doctorName && (
+            <div className="mt-12 bg-slate-50 border border-slate-200 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-6">
+              {article.doctorImage ? (
+                <img src={article.doctorImage} alt={article.doctorName} className="w-[128px] h-[128px] object-cover rounded-2xl border border-slate-200 shrink-0 shadow-sm" />
+              ) : (
+                <div className="w-[128px] h-[128px] rounded-2xl bg-slate-200 border border-slate-300 flex items-center justify-center shrink-0">
+                  <span className="text-slate-400 font-serif italic text-3xl">D</span>
+                </div>
+              )}
+              <div className="flex-1 text-center sm:text-left">
+                <div className="text-sm font-bold text-emerald-600 tracking-widest mb-1 uppercase">의학 자문 / 칼럼니스트</div>
+                <h3 className="text-xl font-bold text-slate-900 mx-1">{article.doctorName}</h3>
+                <p className="text-slate-600 font-medium mb-1">{article.doctorSpecialty}</p>
+                {article.hospitalName && (
+                  <p className="text-slate-500 text-sm font-medium">{article.hospitalName}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-16 pt-8 border-t border-slate-200 flex justify-between items-center">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition">
+            <button onClick={() => navigate(article.categoryId ? `/category/${article.categoryId}` : '/')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition">
               <ArrowLeft className="w-5 h-5" /> 목록으로
             </button>
             <div className="flex gap-2">
