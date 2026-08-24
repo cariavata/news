@@ -1,0 +1,23 @@
+# Netlify build configuration.
+#
+# Build command and publish directory are configured in the Netlify UI and are
+# intentionally not repeated here.
+
+[build.environment]
+  # Secrets scanning "smart detection" flags anything that looks like a
+  # well-known credential format inside the repo and the build output.
+  #
+  # This project's only match is the Firebase Web app configuration in
+  # firebase-applet-config.json, which src/lib/firebase.ts imports and Vite
+  # therefore inlines into the client bundle. Firebase Web config values are
+  # public identifiers by design: they ship to every browser that loads the
+  # app, and access is enforced by Firestore security rules, not by keeping
+  # the config private.
+  #
+  # Smart detection is disabled so those public values stop failing the build.
+  # Standard secrets scanning stays ON: any real secret that leaks into the
+  # build output by matching a configured environment variable value
+  # (MONGODB_URI, GCS_CREDENTIALS_JSON, GEMINI_API_KEY, ...) still fails the
+  # build. Those are only read in server-side code (server.ts, src/server/*)
+  # and are never bundled into the client.
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
