@@ -348,7 +348,7 @@ export const useAppStore = create<AppState>()(
         ogTitle: "DAILY PULSE | 신뢰할 수 있는 보건의료 소식",
         ogDescription: "우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.",
         ogImage: "",
-        naverSiteVerification: "",
+        naverSiteVerification: "d060eade5473b610c0645fe41bbce092e0917fad",
         googleSiteVerification: "57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68",
         googleAdsenseClient: ""
       },

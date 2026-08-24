@@ -146,159 +146,179 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 export default function FirebaseSync() {
   useEffect(() => {
-    let isMounted = true;
-    
-    const loadFirebaseData = async () => {
-      const state = useAppStore.getState();
-      const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
-      
-      const isCacheValid = (Date.now() - state.lastFetchTime) < CACHE_TTL_MS;
-      
-      // If we are fully loaded, cache is valid, and user isn't logged in (admins need fresh data), we skip.
-      if (state.isFirebaseSettingsLoaded && state.categories.length > 0 && state.articles.length > 0 && isCacheValid && !state.isAuthenticated) {
-        return; 
-      }
+    const unsubscribes: (() => void)[] = [];
 
-      try {
-        // Sync Articles
-        try {
-          const articlesSnap = await getDocs(collection(db, 'articles'));
-          let fetchedArticles: any[] = [];
-          const currentLocal = useAppStore.getState().articles || [];
-
-          if (!articlesSnap.empty) {
-            fetchedArticles = articlesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+    // 1. Real-time Articles Listener
+    try {
+      const unsubArticles = onSnapshot(
+        collection(db, 'articles'),
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const fetchedArticles = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
             fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-            useAppStore.setState({ articles: fetchedArticles, hasFetchedInitialArticles: true });
+            useAppStore.setState({ articles: fetchedArticles, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           } else {
-            useAppStore.setState({ articles: currentLocal, hasFetchedInitialArticles: true });
+            useAppStore.setState({ articles: [], hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
-        } catch (e) {
-          console.warn("Error fetching articles from Firestore:", e);
+        },
+        (error) => {
+          console.warn("Real-time articles subscription error:", error);
           useAppStore.setState({ hasFetchedInitialArticles: true });
         }
+      );
+      unsubscribes.push(unsubArticles);
+    } catch (e) {
+      console.warn("Could not attach articles listener:", e);
+      useAppStore.setState({ hasFetchedInitialArticles: true });
+    }
 
-        // Sync Categories
-        const catSnap = await getDocs(collection(db, 'categories'));
-        const defaultCats = [
-          { id: 'checkup', name: '건강검진' },
-          { id: 'womens-health', name: '여성건강' },
-          { id: 'oriental-med', name: '한의학' },
-          { id: 'spine-joint', name: '척추관절' },
-          { id: 'cardnews', name: '카드뉴스' },
-          { id: 'opinion', name: '오피니언' }
-        ];
-        const orderMap = new Map(defaultCats.map((c, i) => [c.id, i]));
-        
-        if (!catSnap.empty) {
-          const categories = catSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
-          const mergedCategories = [...categories];
-          defaultCats.forEach(d => {
-            if (!mergedCategories.find((c: any) => c.id === d.id)) {
-              mergedCategories.push(d);
-            }
-          });
-          mergedCategories.sort((a, b) => {
-            const aOrder = a.order !== undefined ? a.order : (orderMap.has(a.id) ? orderMap.get(a.id)! : 999);
-            const bOrder = b.order !== undefined ? b.order : (orderMap.has(b.id) ? orderMap.get(b.id)! : 999);
-            return aOrder - bOrder;
-          });
-          useAppStore.setState({ categories: mergedCategories });
-        } else {
-          useAppStore.setState({ categories: defaultCats });
-        }
+    // 2. Real-time Categories Listener
+    const defaultCats = [
+      { id: 'checkup', name: '건강검진' },
+      { id: 'womens-health', name: '여성건강' },
+      { id: 'oriental-med', name: '한의학' },
+      { id: 'spine-joint', name: '척추관절' },
+      { id: 'cardnews', name: '카드뉴스' },
+      { id: 'opinion', name: '오피니언' }
+    ];
+    const orderMap = new Map(defaultCats.map((c, i) => [c.id, i]));
 
-        // Sync Company Pages
-        const pagesSnap = await getDocs(collection(db, 'companyPages'));
-        const defaultPages = [
-          { id: 'about', title: '소개', content: '회사 소개 내용입니다.' },
-          { id: 'guidelines', title: '편집 가이드라인', content: '편집 가이드라인 내용입니다.' },
-          { id: 'careers', title: '채용 정보', content: '채용 정보 내용입니다.' },
-          { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '약관 내용입니다.' },
-        ];
-        if (!pagesSnap.empty) {
-          const companyPages = pagesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
-          const mergedPages = [...companyPages];
-          defaultPages.forEach(d => {
-            if (!mergedPages.find((p: any) => p.id === d.id)) {
-              mergedPages.push(d);
-            }
-          });
-          useAppStore.setState({ companyPages: mergedPages });
-        } else {
-          useAppStore.setState({ companyPages: defaultPages });
-        }
-
-        // Sync Ad Banners
-        const adSnap = await getDocs(collection(db, 'adBanners'));
-        const adBanners = adSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
-        useAppStore.setState({ adBanners });
-
-        // Sync Search Keywords
-        const kwSnap = await getDocs(collection(db, 'searchKeywords'));
-        if (!kwSnap.empty) {
-          const keywords = kwSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
-          useAppStore.getState().setGlobalSearchKeywords(keywords);
-        }
-
-        // Sync Inquiries
-        const inqSnap = await getDocs(collection(db, 'inquiries'));
-        const inquiries = inqSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
-        inquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        useAppStore.setState({ inquiries });
-
-        // Sync Analytics
-        try {
-          const analyticsSnap = await getDoc(doc(db, 'analytics', 'global'));
-          if (analyticsSnap.exists()) {
-            const remoteAnalytics = analyticsSnap.data() as any;
-            if (remoteAnalytics && remoteAnalytics.dailyViews) {
-              useAppStore.setState(s => ({
-                analytics: {
-                  dailyViews: { ...s.analytics.dailyViews, ...remoteAnalytics.dailyViews },
-                  dailyKeywords: { ...s.analytics.dailyKeywords, ...remoteAnalytics.dailyKeywords },
-                  dailyDevices: { ...s.analytics.dailyDevices, ...remoteAnalytics.dailyDevices },
-                  dailyReferrers: { ...s.analytics.dailyReferrers, ...remoteAnalytics.dailyReferrers },
-                  keywords: { ...s.analytics.keywords, ...remoteAnalytics.keywords },
-                  devices: { ...s.analytics.devices, ...remoteAnalytics.devices }
-                }
-              }));
-            }
+    try {
+      const unsubCategories = onSnapshot(
+        collection(db, 'categories'),
+        (catSnap) => {
+          if (!catSnap.empty) {
+            const categories = catSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            const mergedCategories = [...categories];
+            defaultCats.forEach(d => {
+              if (!mergedCategories.find((c: any) => c.id === d.id)) {
+                mergedCategories.push(d);
+              }
+            });
+            mergedCategories.sort((a, b) => {
+              const aOrder = a.order !== undefined ? a.order : (orderMap.has(a.id) ? orderMap.get(a.id)! : 999);
+              const bOrder = b.order !== undefined ? b.order : (orderMap.has(b.id) ? orderMap.get(b.id)! : 999);
+              return aOrder - bOrder;
+            });
+            useAppStore.setState({ categories: mergedCategories });
+          } else {
+            useAppStore.setState({ categories: defaultCats });
           }
-        } catch(e) {}
+        },
+        (error) => console.warn("Real-time categories error:", error)
+      );
+      unsubscribes.push(unsubCategories);
+    } catch (e) {
+      console.warn("Could not attach categories listener:", e);
+    }
 
-        // Sync Seo Settings
-        const seoSnap = await getDoc(doc(db, 'settings', 'seo'));
-        if (seoSnap.exists()) {
-          const data = seoSnap.data() as any;
-          useAppStore.setState(state => ({
-            seoSettings: { ...state.seoSettings, ...data },
-            isFirebaseSettingsLoaded: true,
-            lastFetchTime: Date.now()
-          }));
-        } else {
-          useAppStore.setState({ isFirebaseSettingsLoaded: true, lastFetchTime: Date.now() });
+    // 3. Real-time Company Pages Listener
+    const defaultPages = [
+      { id: 'about', title: '소개', content: '회사 소개 내용입니다.' },
+      { id: 'guidelines', title: '편집 가이드라인', content: '편집 가이드라인 내용입니다.' },
+      { id: 'careers', title: '채용 정보', content: '채용 정보 내용입니다.' },
+      { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '약관 내용입니다.' },
+    ];
+    try {
+      const unsubPages = onSnapshot(
+        collection(db, 'companyPages'),
+        (pagesSnap) => {
+          if (!pagesSnap.empty) {
+            const companyPages = pagesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            const mergedPages = [...companyPages];
+            defaultPages.forEach(d => {
+              if (!mergedPages.find((p: any) => p.id === d.id)) {
+                mergedPages.push(d);
+              }
+            });
+            useAppStore.setState({ companyPages: mergedPages });
+          } else {
+            useAppStore.setState({ companyPages: defaultPages });
+          }
+        },
+        (error) => console.warn("Real-time pages error:", error)
+      );
+      unsubscribes.push(unsubPages);
+    } catch (e) {
+      console.warn("Could not attach pages listener:", e);
+    }
+
+    // 4. Real-time Ad Banners Listener
+    try {
+      const unsubAds = onSnapshot(
+        collection(db, 'adBanners'),
+        (adSnap) => {
+          const adBanners = adSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+          useAppStore.setState({ adBanners });
+        },
+        (error) => console.warn("Real-time ads error:", error)
+      );
+      unsubscribes.push(unsubAds);
+    } catch (e) {}
+
+    // 5. Real-time Search Keywords Listener
+    try {
+      const unsubKeywords = onSnapshot(
+        collection(db, 'searchKeywords'),
+        (kwSnap) => {
+          if (!kwSnap.empty) {
+            const keywords = kwSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            useAppStore.getState().setGlobalSearchKeywords(keywords);
+          }
+        },
+        (error) => console.warn("Real-time keywords error:", error)
+      );
+      unsubscribes.push(unsubKeywords);
+    } catch (e) {}
+
+    // 6. Real-time SEO Settings Listener
+    try {
+      const unsubSeo = onSnapshot(
+        doc(db, 'settings', 'seo'),
+        (seoSnap) => {
+          if (seoSnap.exists()) {
+            const data = seoSnap.data() as any;
+            useAppStore.setState(state => ({
+              seoSettings: { ...state.seoSettings, ...data },
+              isFirebaseSettingsLoaded: true,
+              lastFetchTime: Date.now()
+            }));
+          } else {
+            useAppStore.setState({ isFirebaseSettingsLoaded: true, lastFetchTime: Date.now() });
+          }
+        },
+        (error) => {
+          console.warn("Real-time SEO settings error:", error);
+          useAppStore.setState({ isFirebaseSettingsLoaded: true });
         }
+      );
+      unsubscribes.push(unsubSeo);
+    } catch (e) {
+      useAppStore.setState({ isFirebaseSettingsLoaded: true });
+    }
 
-        // Write successful full sync to local storage cache for offline mode
+    // 7. Real-time Inquiries Listener
+    try {
+      const unsubInquiries = onSnapshot(
+        collection(db, 'inquiries'),
+        (inqSnap) => {
+          const inquiries = inqSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+          inquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          useAppStore.setState({ inquiries });
+        },
+        (error) => console.warn("Real-time inquiries error:", error)
+      );
+      unsubscribes.push(unsubInquiries);
+    } catch (e) {}
+
+    // Cleanup all subscriptions when component unmounts
+    return () => {
+      unsubscribes.forEach(unsub => {
         try {
-          const updatedState = useAppStore.getState();
-          localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
-            articles: updatedState.articles,
-            categories: updatedState.categories,
-            companyPages: updatedState.companyPages,
-            adBanners: updatedState.adBanners,
-            globalSearchKeywords: updatedState.globalSearchKeywords,
-            inquiries: updatedState.inquiries,
-            seoSettings: updatedState.seoSettings
-          }));
+          unsub();
         } catch (e) {}
-      } catch (error) {
-        handleFirestoreError(error, OperationType.GET, 'multiple');
-      }
+      });
     };
-
-    loadFirebaseData();
   }, []);
 
   return null;

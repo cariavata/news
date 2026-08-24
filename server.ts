@@ -533,6 +533,11 @@ async function startServer() {
     res.type("text/html; charset=utf-8").send(`google-site-verification: ${filename}`);
   });
 
+  app.get("/naver:code.html", (req, res) => {
+    const filename = req.path.replace(/^\//, "");
+    res.type("text/html; charset=utf-8").send(`naver-site-verification: ${filename}`);
+  });
+
   let vite: any;
   if (!isProd) {
     const { createServer: createViteServer } = await import("vite");
