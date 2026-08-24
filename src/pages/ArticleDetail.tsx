@@ -8,6 +8,7 @@ import Sidebar from '../components/Sidebar';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ArrowLeft, Link as LinkIcon, Share2, Loader2 } from 'lucide-react';
+import { renderContentWithLinks } from '../lib/renderLinks';
 
 const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -99,7 +100,7 @@ export default function ArticleDetail() {
           </div>
 
           <div className="mb-8 text-lg text-slate-600 font-semibold leading-relaxed p-6 bg-slate-50 rounded-r-lg border-l-4 border-slate-900 break-keep">
-            {article.excerpt}
+            {renderContentWithLinks(article.excerpt)}
           </div>
 
           {article.imageUrl && (
@@ -108,8 +109,8 @@ export default function ArticleDetail() {
             </div>
           )}
 
-          <div className="prose prose-slate prose-lg max-w-none font-sans text-slate-800 leading-[1.8] break-keep whitespace-pre-wrap">
-            {article.content}
+          <div className="prose prose-slate prose-lg max-w-none font-sans text-slate-800 leading-[1.8] break-keep">
+            {renderContentWithLinks(article.content)}
           </div>
 
           {article.categoryId === 'opinion' && article.doctorName && (

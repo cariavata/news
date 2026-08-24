@@ -33,7 +33,15 @@ export default function App() {
     return input.replace(/<[^>]+>/g, '').trim() || input.trim() || 'a9a11caab39330cf1a67069dc1c487ed49b767c4';
   };
 
+  const getGoogleToken = (input?: string) => {
+    if (!input) return '';
+    const match = input.match(/content=["']([^"']+)["']/i);
+    if (match) return match[1];
+    return input.replace(/<[^>]+>/g, '').trim() || input.trim();
+  };
+
   const navToken = getNaverToken(seoSettings.naverSiteVerification);
+  const googleToken = getGoogleToken(seoSettings.googleSiteVerification);
   
   // Replace newlines and multi-spaces with simple single space for description to prevent parser errors in crawlers
   const cleanDescription = (seoSettings.description || '건강과 관련된 최신 뉴스와 알찬 정보를 지금 바로 확인하세요.').replace(/\s+/g, ' ').trim();
@@ -57,6 +65,9 @@ export default function App() {
 
         {navToken && (
           <meta name="naver-site-verification" content={navToken} />
+        )}
+        {googleToken && (
+          <meta name="google-site-verification" content={googleToken} />
         )}
         {seoSettings.googleAdsenseClient && (
           <meta name="google-adsense-account" content={seoSettings.googleAdsenseClient} />

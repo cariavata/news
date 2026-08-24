@@ -3,6 +3,8 @@ import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom'
 import { useAppStore } from '../store/useArticleStore';
 import { compressImage } from '../lib/imageUtils';
 
+import { uploadImagesApi } from '../lib/api';
+
 export default function ArticleForm() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -62,12 +64,19 @@ export default function ArticleForm() {
     navigate('/admin');
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      compressImage(file, 1200, 1200, (base64) => {
-        setFormData({ ...formData, imageUrl: base64 });
-      });
+      try {
+        const urls = await uploadImagesApi([file]);
+        if (urls && urls.length > 0) {
+          setFormData(prev => ({ ...prev, imageUrl: urls[0] }));
+        }
+      } catch (err) {
+        compressImage(file, 1200, 1200, (base64) => {
+          setFormData(prev => ({ ...prev, imageUrl: base64 }));
+        });
+      }
     }
   };
 
@@ -154,6 +163,7 @@ export default function ArticleForm() {
                     <option value="">선택하세요</option>
                     <option value="정형외과전문의">정형외과전문의</option>
                     <option value="마취통증의학과전문의">마취통증의학과전문의</option>
+                    <option value="재활의학과전문의">재활의학과전문의</option>
                     <option value="한의사">한의사</option>
                     <option value="산부인과전문의">산부인과전문의</option>
                     <option value="영상의학과전문의">영상의학과전문의</option>

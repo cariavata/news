@@ -12,6 +12,7 @@ export default function AdminSEO() {
     description: '',
     keywords: '',
     naverSiteVerification: '',
+    googleSiteVerification: '',
     googleAdsenseClient: '',
     customHeadTags: '',
     robotsTxt: 'User-agent: *\nAllow: /',
@@ -287,6 +288,18 @@ export default function AdminSEO() {
             </div>
             
             <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">구글 서치콘솔 소유확인 (Meta Tag)</label>
+              <input 
+                type="text" 
+                value={formData.googleSiteVerification || ''}
+                onChange={(e) => setFormData({...formData, googleSiteVerification: e.target.value})}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none font-mono text-sm bg-slate-50"
+                placeholder='<meta name="google-site-verification" content="..." />'
+              />
+              <span className="text-xs text-slate-500 block mt-2 pl-1">구글 서치콘솔(Search Console)에서 제공하는 메타태그 전체 또는 content 값을 입력하세요.</span>
+            </div>
+            
+            <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">구글 애드센스 클라이언트 ID (ca-pub-xxx)</label>
               <input 
                 type="text" 
@@ -299,10 +312,10 @@ export default function AdminSEO() {
           </div>
         </section>
 
-        <section className="bg-slate-50 p-4 border border-slate-200 rounded-md text-sm text-slate-700 mb-4">
+        <section className="bg-emerald-50/60 p-4 border border-emerald-200 rounded-md text-sm text-slate-700 mb-4">
            <strong>💡 웹페이지 수집 / 사이트맵 연동 안내 </strong><br/>
-           현재 정적 배포 구조에서는 <code>/robots.txt</code> 와 <code>/sitemap.xml</code> 파일은 빌드 후 생성되는 정적 자원으로 관리됩니다. 
-           추가 서치 콘솔용 스크립트나 구글 태그 관리자 등의 별도 코드는 직접 소스 내 <code>App.tsx</code>의 <code>&lt;Helmet&gt;</code> 컴포넌트에 주입되도록 구현되어 있습니다.
+           서버가 <code>/robots.txt</code> 와 <code>/sitemap.xml</code>을 실시간으로 동적 생성하여 항상 최신 기사 목록이 연동됩니다. 
+           또한, 네이버/구글 검색 봇이 <strong>각 개별 기사(/article/:id)</strong>를 수집할 때 실제 기사 제목, 요약글, 대표 이미지를 <strong>서버에서 동적으로 메타태그(Open Graph 포함)에 주입</strong>해 제공하므로 검색엔진 등록 및 소셜 공유가 완벽히 처리됩니다.
         </section>
 
         <div className="border-t border-slate-200 pt-6 flex justify-end">

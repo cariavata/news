@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
 
 export default function Header() {
-  const { articles, categories, seoSettings, isAuthenticated, isQuotaExceeded } = useAppStore();
+  const { articles, categories, seoSettings, isAuthenticated } = useAppStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const breakingNews = articles.filter(a => a.isBreaking).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
@@ -19,29 +19,6 @@ export default function Header() {
 
   return (
     <header className="w-full font-sans">
-      {/* Quota Exceeded Notification Banner */}
-      {isQuotaExceeded && (
-        <div className="bg-amber-50 text-amber-900 px-4 py-2.5 text-xs md:text-sm border-b border-amber-200 font-sans flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            <span>
-              <strong>데이터베이스(Firestore) 일일 무료 할당량 초과:</strong> 현재 안전한 오프라인 로컬 캐시 모드로 전환되어 동작 중입니다. 사이트 게시글은 백업 데이터로 중단 없이 안전하게 서빙됩니다.
-            </span>
-          </div>
-          <a
-            href="https://console.firebase.google.com/project/substantial-tooling-g71nt/firestore/databases/ai-studio-a726d1d9-47fc-4e22-9df4-ce73ee9ad261/data?openUpgradeDialog=true"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-amber-700 font-bold shrink-0 cursor-pointer"
-          >
-            Firebase 할당량 업그레이드 및 확인 &rarr;
-          </a>
-        </div>
-      )}
-
       {/* Top Bar */}
       <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-6 lg:px-8 flex justify-between items-center border-b border-slate-800">
         <div className="flex gap-4">

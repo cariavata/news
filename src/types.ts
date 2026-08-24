@@ -35,6 +35,7 @@ export interface SeoSettings {
   description: string;
   keywords: string;
   naverSiteVerification: string;
+  googleSiteVerification?: string;
   googleAdsenseClient: string;
   customHeadTags: string;
   robotsTxt?: string;

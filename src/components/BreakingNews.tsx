@@ -1,44 +1,43 @@
 import React from 'react';
 import { useAppStore } from '../store/useArticleStore';
 import { Link } from 'react-router-dom';
-import { Zap } from 'lucide-react';
+import { Newspaper } from 'lucide-react';
 
 export default function BreakingNews() {
   const { articles } = useAppStore();
-  const breakingArticles = articles
-    .filter(a => a.isBreaking)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5); // Show at most 5 breaking news items
+  
+  const sortedArticles = [...articles].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  const mainArticles = sortedArticles.slice(0, 8);
 
-  if (breakingArticles.length === 0) return null;
+  if (mainArticles.length === 0) return null;
 
   return (
-    <div className="bg-red-700 text-white border-b border-red-800">
+    <div className="bg-[#0b1329] text-slate-100 border-b border-slate-800 shadow-inner">
       <div className="max-w-7xl mx-auto flex items-stretch">
-        <div className="bg-red-800 text-white font-bold px-4 sm:px-6 py-2.5 flex items-center gap-2 z-10 shrink-0 uppercase tracking-widest text-sm">
-          <Zap className="w-4 h-4 fill-current" />
-          속보
+        <div className="bg-[#111c38] text-emerald-400 font-bold px-4 sm:px-6 py-2.5 flex items-center gap-2 z-10 shrink-0 uppercase tracking-wider text-xs sm:text-sm border-r border-slate-800">
+          <Newspaper className="w-4 h-4 text-emerald-400" />
+          <span>주요뉴스</span>
         </div>
         <div className="flex-1 overflow-hidden relative flex items-center">
-          <div className="flex w-fit animate-marquee hover:[animation-play-state:paused] whitespace-nowrap py-2.5">
+          <div className="flex w-fit animate-marquee hover:[animation-play-state:paused] whitespace-nowrap py-2.5 [animation-duration:110s]">
             <div className="flex items-center gap-8 px-8 shrink-0">
-              {breakingArticles.map(article => (
+              {mainArticles.map(article => (
                 <div key={article.id} className="flex items-center gap-8">
-                  <Link to={`/article/${article.id}`} className="hover:underline text-sm font-medium tracking-wide">
+                  <Link to={`/article/${article.id}`} className="hover:text-emerald-300 text-xs sm:text-sm font-medium tracking-wide transition-colors">
                     {article.title}
                   </Link>
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 opacity-50 block last:hidden"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600 block"></span>
                 </div>
               ))}
             </div>
             {/* Duplicate for seamless scrolling */}
             <div className="flex items-center gap-8 px-8 shrink-0" aria-hidden="true">
-              {breakingArticles.map(article => (
+              {mainArticles.map(article => (
                 <div key={`dup-${article.id}`} className="flex items-center gap-8">
-                  <Link to={`/article/${article.id}`} className="hover:underline text-sm font-medium tracking-wide">
+                  <Link to={`/article/${article.id}`} className="hover:text-emerald-300 text-xs sm:text-sm font-medium tracking-wide transition-colors">
                     {article.title}
                   </Link>
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 opacity-50 block last:hidden"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600 block"></span>
                 </div>
               ))}
             </div>
@@ -48,3 +47,4 @@ export default function BreakingNews() {
     </div>
   );
 }
+

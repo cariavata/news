@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppStore } from '../store/useArticleStore';
+import { fallbackArticles, getFreshFallbackArticles, fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
 
 enum OperationType {
   CREATE = 'create',
@@ -76,36 +77,50 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
                   errMsg.toLowerCase().includes('429');
 
   if (isQuota) {
-    useAppStore.setState({ isQuotaExceeded: true, isFirebaseSettingsLoaded: true });
+    useAppStore.setState({ isFirebaseSettingsLoaded: true });
     
+    // Attempt to load from offline cache first
+    try {
+      if (path === 'multiple') {
+        const cachedStr = localStorage.getItem('__firestore_fallback_cache__');
+        if (cachedStr) {
+          const cached = JSON.parse(cachedStr);
+          useAppStore.setState({
+            articles: cached.articles || [],
+            categories: cached.categories || [],
+            companyPages: cached.companyPages || [],
+            adBanners: cached.adBanners || [],
+            globalSearchKeywords: cached.globalSearchKeywords || [],
+            inquiries: cached.inquiries || [],
+            seoSettings: cached.seoSettings || useAppStore.getState().seoSettings
+          });
+          console.warn(`[Offline Mode] Restored data from local cache.`);
+          return;
+        }
+      }
+    } catch (e) {}
+
     // Provide fallback states to prevent empty UI
-    if (path === 'articles') {
-      useAppStore.setState({ articles: getFallbackArticles() });
-    } else if (path === 'categories') {
-      useAppStore.setState({
-        categories: [
-          { id: 'checkup', name: '건강검진' },
-          { id: 'womens-health', name: '여성건강' },
-          { id: 'oriental-med', name: '한의학' },
-          { id: 'spine-joint', name: '척추관절' },
-          { id: 'cardnews', name: '카드뉴스' },
-          { id: 'opinion', name: '오피니언' }
-        ]
-      });
-    } else if (path === 'companyPages') {
-      useAppStore.setState({
-        companyPages: [
-          { id: 'about', title: '소개', content: '회사 소개 내용입니다.' },
-          { id: 'guidelines', title: '편집 가이드라인', content: '편집 가이드라인 내용입니다.' },
-          { id: 'careers', title: '채용 정보', content: '채용 정보 내용입니다.' },
-          { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '약관 내용입니다.' },
-        ]
-      });
-    } else if (path === 'settings/seo') {
-      // Just keep using defaults and let page load
+    if (path === 'multiple' || path === 'articles') {
+      const currentArticles = useAppStore.getState().articles;
+      if (!currentArticles || currentArticles.length === 0) {
+        useAppStore.setState({ articles: fallbackArticles, hasFetchedInitialArticles: true });
+      }
+    } 
+    if (path === 'multiple' || path === 'categories') {
+      const currentCats = useAppStore.getState().categories;
+      if (!currentCats || currentCats.length === 0) {
+        useAppStore.setState({ categories: fallbackCategories });
+      }
+    } 
+    if (path === 'multiple' || path === 'companyPages') {
+      const currentPages = useAppStore.getState().companyPages;
+      if (!currentPages || currentPages.length === 0) {
+        useAppStore.setState({ companyPages: fallbackCompanyPages });
+      }
     }
-    
-    console.warn(`[Offline Fallback Mode Enabled] Firestore daily quota exceeded on path '${path}'. Serving backup content gracefully.`);
+
+    console.warn(`[Offline Mode] DB limit reached on path '${path}'. Serving backup content gracefully.`);
     return;
   }
 
@@ -135,11 +150,46 @@ export default function FirebaseSync() {
     
     const loadFirebaseData = async () => {
       const state = useAppStore.getState();
-      if (state.isFirebaseSettingsLoaded && state.categories.length > 0) {
-        return; // Already loaded
+      const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+      
+      const isCacheValid = (Date.now() - state.lastFetchTime) < CACHE_TTL_MS;
+      
+      // If we are fully loaded, cache is valid, and user isn't logged in (admins need fresh data), we skip.
+      if (state.isFirebaseSettingsLoaded && state.categories.length > 0 && state.articles.length > 0 && isCacheValid && !state.isAuthenticated) {
+        return; 
       }
 
       try {
+        // Sync Articles
+        try {
+          const articlesSnap = await getDocs(collection(db, 'articles'));
+          let fetchedArticles: any[] = [];
+          const currentLocal = useAppStore.getState().articles || [];
+
+          if (!articlesSnap.empty) {
+            fetchedArticles = articlesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            useAppStore.setState({ articles: fetchedArticles, hasFetchedInitialArticles: true });
+          } else {
+            // Seed Firestore if empty, preserving any local articles created by user
+            const articlesToUse = currentLocal.length > 0 ? currentLocal : getFreshFallbackArticles();
+            useAppStore.setState({ articles: articlesToUse, hasFetchedInitialArticles: true });
+            for (const art of articlesToUse) {
+              try {
+                await setDoc(doc(db, 'articles', art.id), art);
+              } catch (e) {
+                console.warn("Error seeding article to Firestore:", e);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Error fetching articles from Firestore:", e);
+          const curr = useAppStore.getState().articles;
+          if (!curr || curr.length === 0) {
+            useAppStore.setState({ articles: getFreshFallbackArticles(), hasFetchedInitialArticles: true });
+          }
+        }
+
         // Sync Categories
         const catSnap = await getDocs(collection(db, 'categories'));
         const defaultCats = [
@@ -209,17 +259,52 @@ export default function FirebaseSync() {
         inquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         useAppStore.setState({ inquiries });
 
+        // Sync Analytics
+        try {
+          const analyticsSnap = await getDoc(doc(db, 'analytics', 'global'));
+          if (analyticsSnap.exists()) {
+            const remoteAnalytics = analyticsSnap.data() as any;
+            if (remoteAnalytics && remoteAnalytics.dailyViews) {
+              useAppStore.setState(s => ({
+                analytics: {
+                  dailyViews: { ...s.analytics.dailyViews, ...remoteAnalytics.dailyViews },
+                  dailyKeywords: { ...s.analytics.dailyKeywords, ...remoteAnalytics.dailyKeywords },
+                  dailyDevices: { ...s.analytics.dailyDevices, ...remoteAnalytics.dailyDevices },
+                  dailyReferrers: { ...s.analytics.dailyReferrers, ...remoteAnalytics.dailyReferrers },
+                  keywords: { ...s.analytics.keywords, ...remoteAnalytics.keywords },
+                  devices: { ...s.analytics.devices, ...remoteAnalytics.devices }
+                }
+              }));
+            }
+          }
+        } catch(e) {}
+
         // Sync Seo Settings
         const seoSnap = await getDoc(doc(db, 'settings', 'seo'));
         if (seoSnap.exists()) {
           const data = seoSnap.data() as any;
           useAppStore.setState(state => ({
             seoSettings: { ...state.seoSettings, ...data },
-            isFirebaseSettingsLoaded: true
+            isFirebaseSettingsLoaded: true,
+            lastFetchTime: Date.now()
           }));
         } else {
-          useAppStore.setState({ isFirebaseSettingsLoaded: true });
+          useAppStore.setState({ isFirebaseSettingsLoaded: true, lastFetchTime: Date.now() });
         }
+
+        // Write successful full sync to local storage cache for offline mode
+        try {
+          const updatedState = useAppStore.getState();
+          localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
+            articles: updatedState.articles,
+            categories: updatedState.categories,
+            companyPages: updatedState.companyPages,
+            adBanners: updatedState.adBanners,
+            globalSearchKeywords: updatedState.globalSearchKeywords,
+            inquiries: updatedState.inquiries,
+            seoSettings: updatedState.seoSettings
+          }));
+        } catch (e) {}
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, 'multiple');
       }

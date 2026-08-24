@@ -4,6 +4,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Heart, Share2, Link as LinkIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
+import { renderContentWithLinks } from '../lib/renderLinks';
+
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
 
 interface CardNewsListProps {
   articles: Article[];
@@ -53,17 +60,16 @@ export default function CardNewsList({ articles, categoryName }: CardNewsListPro
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [modalImageIndex, setModalImageIndex] = useState(0);
 
-  const handleShareTwitter = (article: Article) => {
-    const url = `${window.location.origin}/article/${article.id}`;
-    const text = `[${categoryName}] ${article.title}`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-  };
-
   const handleCopyUrl = (article: Article) => {
     const url = `${window.location.origin}/article/${article.id}`;
     navigator.clipboard.writeText(url).then(() => {
       alert('URL이 복사되었습니다.');
     });
+  };
+
+  const handleTwitterShare = (article: Article) => {
+    const url = `${window.location.origin}/article/${article.id}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(url)}`, '_blank');
   };
 
   return (
@@ -218,9 +224,9 @@ export default function CardNewsList({ articles, categoryName }: CardNewsListPro
 
               {/* Description Content */}
               <div className="p-4 flex flex-col gap-4 overflow-y-auto flex-1 bg-white hide-scrollbar">
-                <p className="text-[13px] sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line break-words">
-                  {selectedArticle.content || selectedArticle.excerpt}
-                </p>
+                <div className="text-[13px] sm:text-sm text-slate-700 leading-relaxed break-words">
+                  {renderContentWithLinks(selectedArticle.content || selectedArticle.excerpt)}
+                </div>
               </div>
               
               {/* Actions & Footer */}
@@ -232,12 +238,22 @@ export default function CardNewsList({ articles, categoryName }: CardNewsListPro
                   >
                     <Heart className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors ${likedArticles[selectedArticle.id] ? 'fill-red-500 text-red-500' : 'group-hover:fill-red-100'}`} />
                   </button>
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <button onClick={() => handleShareTwitter(selectedArticle)} className="text-slate-600 hover:text-[#1DA1F2] transition" aria-label="Share on Twitter" title="Share on Twitter">
-                      <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <button 
+                      onClick={() => handleTwitterShare(selectedArticle)} 
+                      className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white rounded-full transition shadow-sm" 
+                      aria-label="X (Twitter) 공유" 
+                      title="X (트위터) 공유"
+                    >
+                      <XIcon />
                     </button>
-                    <button onClick={() => handleCopyUrl(selectedArticle)} className="text-slate-600 hover:text-slate-900 transition" aria-label="Copy URL" title="Copy URL">
-                      <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <button 
+                      onClick={() => handleCopyUrl(selectedArticle)} 
+                      className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full transition shadow-sm border border-slate-200" 
+                      aria-label="URL 복사" 
+                      title="URL 복사"
+                    >
+                      <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
