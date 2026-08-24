@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useArticleStore';
 import { SeoSettings } from '../types';
 import { compressImage } from '../lib/imageUtils';
+import { Download, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function AdminSEO() {
-  const { seoSettings, updateSeoSettings } = useAppStore();
+  const { seoSettings, updateSeoSettings, articles, categories, companyPages } = useAppStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
   const [formData, setFormData] = useState<SeoSettings>({
     siteName: '',
     logoUrl: '',
@@ -15,7 +18,7 @@ export default function AdminSEO() {
     googleSiteVerification: '',
     googleAdsenseClient: '',
     customHeadTags: '',
-    robotsTxt: 'User-agent: *\nAllow: /',
+    robotsTxt: 'User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml',
     adsTxt: '',
     sitemapXml: '',
     rssXml: '',
@@ -31,13 +34,25 @@ export default function AdminSEO() {
       ...seoSettings,
       homeIntroText: seoSettings.homeIntroText ?? '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.',
       homeIntroEnabled: seoSettings.homeIntroEnabled !== false,
+      naverSiteVerification: seoSettings.naverSiteVerification || 'd060eade5473b610c0645fe41bbce092e0917fad',
+      googleSiteVerification: seoSettings.googleSiteVerification || '57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68',
+      robotsTxt: seoSettings.robotsTxt || 'User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml'
     });
   }, [seoSettings]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateSeoSettings(formData);
-    alert('기본 설정 및 검색 엔진 설정이 저장되었습니다.');
+    setIsSaving(true);
+    try {
+      await updateSeoSettings(formData);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 4000);
+      alert('✅ 모든 설정이 Firestore 데이터베이스에 실시간으로 안전하게 저장되었습니다!');
+    } catch (err) {
+      alert('저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +62,73 @@ export default function AdminSEO() {
         setFormData({ ...formData, logoUrl: base64 });
       });
     }
+  };
+
+  const getBaseDomain = () => {
+    if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')) {
+      return window.location.origin;
+    }
+    return 'https://the-dailypulse.netlify.app';
+  };
+
+  const handleAutoGenerateSitemap = () => {
+    const domain = getBaseDomain();
+    const today = new Date().toISOString().split('T')[0];
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    xml += `  <url>\n    <loc>${domain}/</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>always</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+
+    for (const art of articles) {
+      const lastmod = art.createdAt ? art.createdAt.split('T')[0] : today;
+      xml += `  <url>\n    <loc>${domain}/article/${art.id}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    }
+
+    for (const cat of categories) {
+      xml += `  <url>\n    <loc>${domain}/category/${cat.id}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+    }
+
+    for (const page of companyPages) {
+      xml += `  <url>\n    <loc>${domain}/info/${page.id}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>\n`;
+    }
+
+    xml += `</urlset>`;
+    setFormData({ ...formData, sitemapXml: xml });
+    alert('기사 및 카테고리를 반영한 최신 sitemap.xml 이 생성되었습니다. 하단의 [모든 설정 저장하기]를 눌러 적용하세요.');
+  };
+
+  const handleAutoGenerateRss = () => {
+    const domain = getBaseDomain();
+    const siteTitle = formData.title || 'DAILY PULSE | 신뢰할 수 있는 보건의료 소식';
+    const siteDesc = formData.description || '우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.';
+    const nowRfc = new Date().toUTCString();
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n`;
+    xml += `  <title><![CDATA[${siteTitle}]]></title>\n  <link>${domain}</link>\n  <description><![CDATA[${siteDesc}]]></description>\n  <language>ko-kr</language>\n`;
+    xml += `  <pubDate>${nowRfc}</pubDate>\n  <lastBuildDate>${nowRfc}</lastBuildDate>\n`;
+    xml += `  <atom:link href="${domain}/rss.xml" rel="self" type="application/rss+xml" />\n`;
+
+    for (const art of articles.slice(0, 30)) {
+      const cleanDesc = (art.excerpt || art.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 300);
+      const artDate = art.createdAt ? new Date(art.createdAt).toUTCString() : nowRfc;
+      xml += `  <item>\n    <title><![CDATA[${art.title}]]></title>\n    <link>${domain}/article/${art.id}</link>\n    <description><![CDATA[${cleanDesc}]]></description>\n    <dc:creator><![CDATA[${art.author || '데일리펄스'}]]></dc:creator>\n    <pubDate>${artDate}</pubDate>\n    <guid isPermaLink="true">${domain}/article/${art.id}</guid>\n  </item>\n`;
+    }
+
+    xml += `</channel>\n</rss>`;
+    setFormData({ ...formData, rssXml: xml });
+    alert('기사를 반영한 최신 rss.xml 이 생성되었습니다. 하단의 [모든 설정 저장하기]를 눌러 적용하세요.');
+  };
+
+  const handleDownloadFile = (filename: string, content: string) => {
+    if (!content) {
+      alert('다운로드할 내용이 없습니다. 먼저 [자동 생성]을 눌러 내용을 채워주세요.');
+      return;
+    }
+    const element = document.createElement('a');
+    const file = new Blob([content], { type: 'text/xml;charset=utf-8' });
+    element.href = URL.createObjectURL(file);
+    element.download = filename;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
@@ -234,33 +316,79 @@ export default function AdminSEO() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">사이트맵 (sitemap.xml)</label>
+            {/* Sitemap XML */}
+            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/70">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <label className="text-sm font-bold text-slate-800">사이트맵 (sitemap.xml)</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={handleAutoGenerateSitemap}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md shadow-sm transition"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    기사/카테고리 XML 자동생성
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleDownloadFile('sitemap.xml', formData.sitemapXml || '')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-md shadow-sm transition"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    파일 다운로드
+                  </button>
+                </div>
+              </div>
               <textarea 
-                rows={4}
+                rows={5}
                 value={formData.sitemapXml}
                 onChange={(e) => setFormData({...formData, sitemapXml: e.target.value})}
-                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none font-mono text-sm bg-slate-50"
-                placeholder={`<?xml version="1.0" encoding="UTF-8"?>...`}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-emerald-600 outline-none resize-y font-mono text-xs bg-white text-slate-800"
+                placeholder={`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://the-dailypulse.netlify.app/</loc>\n    <priority>1.0</priority>\n  </url>\n</urlset>`}
               />
               <div className="flex justify-between items-center mt-2 pl-1">
-                <span className="text-xs text-slate-500">sitemap.xml 내용을 복사하여 붙여넣으세요.</span>
-                <a href="/sitemap.xml" target="_blank" className="text-xs text-[#a062ff] hover:underline">/sitemap.xml 열기</a>
+                <span className="text-xs text-slate-500">네이버 서치어드바이저 {'>'} 사이트맵 제출에 <code>sitemap.xml</code> 입력</span>
+                <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-700 hover:underline inline-flex items-center gap-1">
+                  /sitemap.xml 열기 ↗
+                </a>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">RSS 피드 (rss.xml)</label>
+            {/* RSS XML */}
+            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/70">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <label className="text-sm font-bold text-slate-800">RSS 피드 (rss.xml)</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={handleAutoGenerateRss}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md shadow-sm transition"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    기사 RSS 피드 자동생성
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleDownloadFile('rss.xml', formData.rssXml || '')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-md shadow-sm transition"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    파일 다운로드
+                  </button>
+                </div>
+              </div>
               <textarea 
-                rows={4}
+                rows={5}
                 value={formData.rssXml}
                 onChange={(e) => setFormData({...formData, rssXml: e.target.value})}
-                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none resize-none font-mono text-sm bg-slate-50"
-                placeholder={`<?xml version="1.0" encoding="UTF-8"?>...`}
+                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-emerald-600 outline-none resize-y font-mono text-xs bg-white text-slate-800"
+                placeholder={`<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>DAILY PULSE</title>\n    <link>https://the-dailypulse.netlify.app</link>\n  </channel>\n</rss>`}
               />
               <div className="flex justify-between items-center mt-2 pl-1">
-                <span className="text-xs text-slate-500">rss.xml 내용을 복사하여 붙여넣으세요.</span>
-                <a href="/rss.xml" target="_blank" className="text-xs text-[#a062ff] hover:underline">/rss.xml 열기</a>
+                <span className="text-xs text-slate-500">네이버 서치어드바이저 {'>'} RSS 제출에 <code>https://the-dailypulse.netlify.app/rss.xml</code> 입력</span>
+                <a href="/rss.xml" target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-700 hover:underline inline-flex items-center gap-1">
+                  /rss.xml 열기 ↗
+                </a>
               </div>
             </div>
             
@@ -312,15 +440,38 @@ export default function AdminSEO() {
           </div>
         </section>
 
-        <section className="bg-emerald-50/60 p-4 border border-emerald-200 rounded-md text-sm text-slate-700 mb-4">
-           <strong>💡 웹페이지 수집 / 사이트맵 연동 안내 </strong><br/>
-           서버가 <code>/robots.txt</code> 와 <code>/sitemap.xml</code>을 실시간으로 동적 생성하여 항상 최신 기사 목록이 연동됩니다. 
-           또한, 네이버/구글 검색 봇이 <strong>각 개별 기사(/article/:id)</strong>를 수집할 때 실제 기사 제목, 요약글, 대표 이미지를 <strong>서버에서 동적으로 메타태그(Open Graph 포함)에 주입</strong>해 제공하므로 검색엔진 등록 및 소셜 공유가 완벽히 처리됩니다.
+        <section className="bg-emerald-50/80 p-4 border border-emerald-200 rounded-md text-sm text-slate-700">
+           <strong>💡 네이버 서치어드바이저 & 구글 서치콘솔 제출 가이드</strong><br/>
+           1. <strong>사이트 소유확인</strong>: HTML 태그(d060eade5473b610c0645fe41bbce092e0917fad) 또는 HTML 파일 업로드 방식 모두 지원됩니다.<br/>
+           2. <strong>사이트맵 제출</strong>: <code>sitemap.xml</code> 을 입력하여 제출하세요.<br/>
+           3. <strong>RSS 제출</strong>: <code>https://the-dailypulse.netlify.app/rss.xml</code> 을 입력하여 제출하세요.
         </section>
 
-        <div className="border-t border-slate-200 pt-6 flex justify-end">
-          <button type="submit" className="bg-slate-900 text-white font-bold px-8 py-3 rounded-md hover:bg-slate-800 transition">
-            모든 설정 저장하기
+        <div className="border-t border-slate-200 pt-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="text-sm text-slate-600">
+            {savedSuccess && (
+              <span className="text-emerald-700 font-bold inline-flex items-center gap-1.5 animate-bounce">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                Firestore 데이터베이스에 성공적으로 저장되었습니다!
+              </span>
+            )}
+          </div>
+          <button 
+            type="submit" 
+            disabled={isSaving}
+            className="bg-slate-900 text-white font-bold px-8 py-3.5 rounded-lg hover:bg-slate-800 transition shadow-sm inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                저장 중...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                모든 설정 저장하기
+              </>
+            )}
           </button>
         </div>
       </form>

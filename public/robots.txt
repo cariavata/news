@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://the-dailypulse.netlify.app/sitemap.xml

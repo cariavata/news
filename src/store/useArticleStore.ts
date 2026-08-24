@@ -296,42 +296,84 @@ export const useAppStore = create<AppState>()(
       },
 
       adBanners: [],
-      addAdBanner: (bannerData) => {
+      addAdBanner: async (bannerData) => {
         const id = uuidv4();
         const obj = { ...bannerData, id };
         set((state) => ({ adBanners: [...state.adBanners, obj] }));
+        try {
+          await setDoc(doc(db, 'adBanners', id), obj);
+        } catch (e) {
+          console.warn("addAdBanner Firestore error:", e);
+        }
       },
-      deleteAdBanner: (id) => {
+      deleteAdBanner: async (id) => {
         set((state) => ({ adBanners: state.adBanners.filter(b => b.id !== id) }));
+        try {
+          await deleteDoc(doc(db, 'adBanners', id));
+        } catch (e) {
+          console.warn("deleteAdBanner Firestore error:", e);
+        }
       },
 
       companyPages: fallbackCompanyPages,
-      addCompanyPage: (pageData) => {
+      addCompanyPage: async (pageData) => {
         const id = uuidv4();
         const obj = { ...pageData, id };
         set((state) => ({ companyPages: [...state.companyPages, obj] }));
+        try {
+          await setDoc(doc(db, 'companyPages', id), obj);
+        } catch (e) {
+          console.warn("addCompanyPage Firestore error:", e);
+        }
       },
-      updateCompanyPage: (id, pageData) => {
+      updateCompanyPage: async (id, pageData) => {
         set((state) => ({
           companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...pageData } : page)
         }));
+        try {
+          await updateDoc(doc(db, 'companyPages', id), pageData);
+        } catch (e) {
+          console.warn("updateCompanyPage Firestore error:", e);
+        }
       },
-      deleteCompanyPage: (id) => {
+      deleteCompanyPage: async (id) => {
         set((state) => ({ companyPages: state.companyPages.filter(page => page.id !== id) }));
+        try {
+          await deleteDoc(doc(db, 'companyPages', id));
+        } catch (e) {
+          console.warn("deleteCompanyPage Firestore error:", e);
+        }
       },
 
       inquiries: [],
-      addInquiry: (inquiryData) => {
+      addInquiry: async (inquiryData) => {
         const id = uuidv4();
         const obj = { ...inquiryData, id, createdAt: new Date().toISOString(), status: 'unread' as const };
         set((state) => ({ inquiries: [obj, ...state.inquiries] }));
+        try {
+          await setDoc(doc(db, 'inquiries', id), obj);
+        } catch (e) {
+          console.warn("addInquiry Firestore error:", e);
+        }
       },
-      deleteInquiry: (id) => {
+      deleteInquiry: async (id) => {
         set((state) => ({ inquiries: state.inquiries.filter(i => i.id !== id) }));
+        try {
+          await deleteDoc(doc(db, 'inquiries', id));
+        } catch (e) {
+          console.warn("deleteInquiry Firestore error:", e);
+        }
       },
-      deleteMultipleInquiries: (ids) => {
+      deleteMultipleInquiries: async (ids) => {
         const idSet = new Set(ids);
         set((state) => ({ inquiries: state.inquiries.filter(i => !idSet.has(i.id)) }));
+        for (const id of ids) {
+          try {
+            await deleteDoc(doc(db, 'inquiries', id));
+          } catch (e) {
+            console.warn("deleteMultipleInquiries Firestore error:", e);
+          }
+        }
       },
 
       seoSettings: {
@@ -341,7 +383,7 @@ export const useAppStore = create<AppState>()(
         title: "DAILY PULSE | 신뢰할 수 있는 보건의료 소식",
         description: "우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.",
         keywords: "건강, 의학, 보건, 의료, 건강검진, 여성건강, 한의학, 척추관절, 카드뉴스, 오피니언",
-        robotsTxt: "User-agent: *\nAllow: /",
+        robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml",
         adsTxt: "",
         sitemapXml: "",
         rssXml: "",
@@ -354,6 +396,11 @@ export const useAppStore = create<AppState>()(
       },
       updateSeoSettings: async (settings) => {
         set({ seoSettings: settings });
+        try {
+          await setDoc(doc(db, 'settings', 'seo'), settings, { merge: true });
+        } catch (e) {
+          console.warn("Save SEO settings Firestore error:", e);
+        }
         try {
           await saveSeoSettingsApi(settings);
         } catch (e) {
