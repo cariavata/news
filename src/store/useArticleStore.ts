@@ -183,7 +183,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
       },
 
-      articles: getFreshFallbackArticles(),
+      articles: [],
       hasFetchedInitialArticles: false,
       categoryFetchStatus: {},
       fetchInitialArticles: async () => {
@@ -194,21 +194,11 @@ export const useAppStore = create<AppState>()(
             const sorted = [...apiArticles].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
             set({ articles: sorted, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           } else {
-            // Keep current articles (which includes user articles from local storage)
-            if (currentArticles.length === 0) {
-              set({ articles: getFreshFallbackArticles(), hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
-            } else {
-              set({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
-            }
+            set({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         } catch (error) {
           console.warn("fetchInitialArticles error:", error);
-          const currentArticles = useAppStore.getState().articles || [];
-          if (currentArticles.length === 0) {
-            set({ articles: getFreshFallbackArticles(), hasFetchedInitialArticles: true });
-          } else {
-            set({ hasFetchedInitialArticles: true });
-          }
+          set({ hasFetchedInitialArticles: true });
         }
       },
       fetchArticlesByCategory: async (categoryId: string) => {

@@ -15,7 +15,7 @@ const XIcon = () => (
 );
 
 export default function MainContent() {
-  const { articles, categories, toggleArticleLike } = useAppStore();
+  const { articles, categories, toggleArticleLike, hasFetchedInitialArticles } = useAppStore();
   
   // Always sort articles by date descending (newest first)
   const sortedArticles = [...articles].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
@@ -86,6 +86,23 @@ export default function MainContent() {
     ? selectedCardNews.cardNewsImages
     : (selectedCardNews?.imageUrl ? [selectedCardNews.imageUrl] : []);
 
+  if (!hasFetchedInitialArticles && articles.length === 0) {
+    return (
+      <div className="flex flex-col gap-10 animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex flex-col gap-3">
+              <div className="bg-slate-200 rounded-lg aspect-square w-full" />
+              <div className="h-4 bg-slate-200 rounded w-1/3" />
+              <div className="h-7 bg-slate-200 rounded w-3/4" />
+              <div className="h-4 bg-slate-200 rounded w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-14">
       {/* Hero Section (Featured Articles) */}
@@ -102,14 +119,14 @@ export default function MainContent() {
                   />
                 )}
                 <div className="absolute top-4 left-4">
-                  <span className="bg-red-700 text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 tracking-wider shadow-sm uppercase">주요 기사</span>
+                  <span className="bg-slate-900/90 text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 tracking-wider shadow-sm uppercase backdrop-blur-sm">주요 기사</span>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mb-3 tracking-wider">
                 <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}</span>
                 <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> {article.author}</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 leading-[1.3] mb-3 group-hover:text-red-700 transition-colors break-keep line-clamp-2">
+              <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 leading-[1.3] mb-3 group-hover:text-emerald-700 transition-colors break-keep line-clamp-2">
                 {article.title}
               </h2>
               <p className="text-[15px] text-slate-600 font-sans leading-relaxed break-keep line-clamp-2">

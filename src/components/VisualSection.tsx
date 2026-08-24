@@ -100,7 +100,7 @@ export default function VisualSection({
   badgeDetail,
   compact = false
 }: VisualSectionProps = {}) {
-  const { seoSettings, isFirebaseSettingsLoaded } = useAppStore();
+  const { seoSettings } = useAppStore();
   
   const isEnabled = seoSettings.homeIntroEnabled !== false;
   const introText = title || seoSettings.homeIntroText || '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.';
@@ -135,7 +135,7 @@ export default function VisualSection({
   const activeBadgeDetail = badgeDetail || currentVisual.title;
 
   return (
-    <div className={`relative w-full overflow-hidden bg-[#020813] border-b border-slate-800/80 transition-opacity duration-700 ${isFirebaseSettingsLoaded ? 'opacity-100' : 'opacity-0'}`}>
+    <div className="relative w-full overflow-hidden bg-[#020813] border-b border-slate-800/80">
       
       {/* Background Images with Cross-fade & Ken Burns Slow Zoom */}
       <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">

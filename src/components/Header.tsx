@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Menu, Bell, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useArticleStore';
 
 export default function Header() {
-  const { articles, categories, seoSettings, isAuthenticated } = useAppStore();
+  const { categories, seoSettings } = useAppStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const breakingNews = articles.filter(a => a.isBreaking).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   const dateOptions: Intl.DateTimeFormatOptions = { 
     weekday: 'long', 
@@ -57,20 +55,6 @@ export default function Header() {
             ))}
          </ul>
       </nav>
-
-      {/* Breaking Ticker */}
-      {breakingNews && (
-        <Link to={`/article/${breakingNews.id}`} className="bg-red-700 text-white px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-4 shadow-inner hover:bg-red-800 transition block w-full group">
-          <div className="flex items-center gap-4 w-full">
-            <span className="font-bold text-xs tracking-wider bg-white text-red-700 px-2 py-0.5 rounded-sm shrink-0 flex items-center gap-1">
-              <Bell className="w-3 h-3" /> 속보
-            </span>
-            <p className="text-sm font-medium line-clamp-1 group-hover:underline cursor-pointer">
-              {breakingNews.title}
-            </p>
-          </div>
-        </Link>
-      )}
     </header>
   )
 }

@@ -171,23 +171,11 @@ export default function FirebaseSync() {
             fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
             useAppStore.setState({ articles: fetchedArticles, hasFetchedInitialArticles: true });
           } else {
-            // Seed Firestore if empty, preserving any local articles created by user
-            const articlesToUse = currentLocal.length > 0 ? currentLocal : getFreshFallbackArticles();
-            useAppStore.setState({ articles: articlesToUse, hasFetchedInitialArticles: true });
-            for (const art of articlesToUse) {
-              try {
-                await setDoc(doc(db, 'articles', art.id), art);
-              } catch (e) {
-                console.warn("Error seeding article to Firestore:", e);
-              }
-            }
+            useAppStore.setState({ articles: currentLocal, hasFetchedInitialArticles: true });
           }
         } catch (e) {
           console.warn("Error fetching articles from Firestore:", e);
-          const curr = useAppStore.getState().articles;
-          if (!curr || curr.length === 0) {
-            useAppStore.setState({ articles: getFreshFallbackArticles(), hasFetchedInitialArticles: true });
-          }
+          useAppStore.setState({ hasFetchedInitialArticles: true });
         }
 
         // Sync Categories
