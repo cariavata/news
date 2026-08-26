@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useArticleStore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
+import AdsenseBanner from '../components/AdsenseBanner';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ArrowLeft, Link as LinkIcon, Share2, Loader2 } from 'lucide-react';
@@ -19,7 +20,7 @@ const XIcon = () => (
 export default function ArticleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { articles, categories, seoSettings, incrementArticleViews, fetchArticleById } = useAppStore();
+  const { articles, categories, adBanners, seoSettings, incrementArticleViews, fetchArticleById } = useAppStore();
   const [loading, setLoading] = useState(true);
   
   const article = articles.find(a => a.id === id);
@@ -130,6 +131,34 @@ export default function ArticleDetail() {
                   <p className="text-slate-500 text-sm font-medium">{article.hospitalName}</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* In-article Ad Banner */}
+          {adBanners && adBanners.length > 0 && (
+            <div className="mt-12 pt-6 border-t border-slate-100">
+              {(() => {
+                const banner = adBanners[0];
+                const adClient = seoSettings.googleAdsenseClient || "ca-pub-6799823492487492";
+                if (banner.type === 'adsense') {
+                  return (
+                    <div className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 relative overflow-hidden text-center min-h-[140px] flex items-center justify-center">
+                      <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10 pointer-events-none">
+                        광고
+                      </div>
+                      <AdsenseBanner client={adClient} slot={banner.adsenseSlot!} />
+                    </div>
+                  );
+                }
+                return (
+                  <a href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-lg border border-slate-200">
+                    <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
+                      광고
+                    </div>
+                    <img src={banner.imageUrl} alt="Advertisement" className="w-full h-auto max-h-[180px] object-cover" />
+                  </a>
+                );
+              })()}
             </div>
           )}
 

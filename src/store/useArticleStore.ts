@@ -373,7 +373,7 @@ export const useAppStore = create<AppState>()(
         description: "우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.",
         keywords: "건강, 의학, 보건, 의료, 건강검진, 여성건강, 한의학, 척추관절, 카드뉴스, 오피니언",
         robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml",
-        adsTxt: "",
+        adsTxt: "google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0",
         sitemapXml: "",
         rssXml: "",
         ogTitle: "DAILY PULSE | 신뢰할 수 있는 보건의료 소식",
@@ -381,7 +381,7 @@ export const useAppStore = create<AppState>()(
         ogImage: "",
         naverSiteVerification: "d060eade5473b610c0645fe41bbce092e0917fad",
         googleSiteVerification: "57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68",
-        googleAdsenseClient: ""
+        googleAdsenseClient: "ca-pub-6799823492487492"
       },
       updateSeoSettings: async (settings) => {
         set({ seoSettings: settings });

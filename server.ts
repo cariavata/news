@@ -376,7 +376,7 @@ async function startServer() {
       }
       res.send(`google.com, ${client}, DIRECT, f08c47fec0942fa0`);
     } else {
-      res.send("");
+      res.send("google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0");
     }
   });
 

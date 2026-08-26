@@ -82,14 +82,15 @@ export default function Sidebar() {
       {adBanners.length > 0 ? (
         <div className="flex flex-col gap-6">
           {adBanners.map(banner => {
-            if (banner.type === 'adsense' && seoSettings.googleAdsenseClient) {
+            const adClient = seoSettings.googleAdsenseClient || "ca-pub-6799823492487492";
+            if (banner.type === 'adsense') {
               return (
-                <div key={banner.id} className="block relative w-full overflow-hidden bg-slate-50 min-h-[250px]">
+                <div key={banner.id} className="block relative w-full overflow-hidden bg-slate-50 min-h-[250px] border border-slate-200 rounded-md">
                   <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10 pointer-events-none">
                     광고
                   </div>
                   <AdsenseBanner
-                    client={seoSettings.googleAdsenseClient}
+                    client={adClient}
                     slot={banner.adsenseSlot!}
                   />
                 </div>
