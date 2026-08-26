@@ -2,17 +2,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage, Inquiry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { fallbackArticles, getFreshFallbackArticles, fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
+import { doc, setDoc, updateDoc, deleteDoc, getDocs, collection, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
-  fetchArticlesApi,
   createArticleApi,
   updateArticleApi,
   deleteArticleApi,
   incrementArticleViewsApi,
-  fetchCategoriesApi,
-  fetchCompanyPagesApi,
   saveSeoSettingsApi,
   fetchSeoSettingsApi
 } from '../lib/api';
@@ -34,9 +31,14 @@ export interface SearchKeywordData {
   createdAt?: string;
 }
 
+export const sanitizeArticles = (articles: any[]): Article[] => {
+  if (!Array.isArray(articles)) return [];
+  return articles.filter(a => a && typeof a.id === 'string' && !a.id.startsWith('fb-') && a.id !== '1' && a.id !== '2' && a.id !== '3') as Article[];
+};
+
 export const ensureFallbackContent = () => {
   const state = useAppStore.getState();
-  let articlesToSet = state.articles;
+  let articlesToSet = sanitizeArticles(state.articles);
 
   if (!articlesToSet || articlesToSet.length === 0) {
     try {
@@ -44,18 +46,14 @@ export const ensureFallbackContent = () => {
       if (cachedStr) {
         const cached = JSON.parse(cachedStr);
         if (cached.articles && cached.articles.length > 0) {
-          articlesToSet = cached.articles;
+          articlesToSet = sanitizeArticles(cached.articles);
         }
       }
     } catch (e) {}
   }
 
-  if (!articlesToSet || articlesToSet.length === 0) {
-    articlesToSet = fallbackArticles;
-  }
-
   useAppStore.setState({
-    articles: articlesToSet,
+    articles: articlesToSet || [],
     categories: state.categories && state.categories.length > 0 ? state.categories : fallbackCategories,
     companyPages: state.companyPages && state.companyPages.length > 0 ? state.companyPages : fallbackCompanyPages,
     isFirebaseSettingsLoaded: true,
@@ -188,42 +186,33 @@ export const useAppStore = create<AppState>()(
       categoryFetchStatus: {},
       fetchInitialArticles: async () => {
         try {
-          const apiArticles = await fetchArticlesApi();
-          const currentArticles = useAppStore.getState().articles || [];
-          if (apiArticles && apiArticles.length > 0) {
-            const sorted = [...apiArticles].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-            set({ articles: sorted, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+          const snapshot = await getDocs(collection(db, 'articles'));
+          if (!snapshot.empty) {
+            const raw = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            const fetched = sanitizeArticles(raw);
+            fetched.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            set({ articles: fetched, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           } else {
-            set({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            set({ articles: [], hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         } catch (error) {
-          console.warn("fetchInitialArticles error:", error);
+          console.warn("fetchInitialArticles Firestore error:", error);
           set({ hasFetchedInitialArticles: true });
         }
       },
-      fetchArticlesByCategory: async (categoryId: string) => {
-        try {
-          const apiArticles = await fetchArticlesApi();
-          const filtered = apiArticles.filter(a => a.categoryId === categoryId || (a as any).category === categoryId);
-          set((s) => {
-            const existingIds = new Set(s.articles.map(a => a.id));
-            const toAdd = filtered.filter(a => !existingIds.has(a.id));
-            return {
-              articles: [...s.articles, ...toAdd]
-            };
-          });
-        } catch (error) {
-          console.warn("fetchArticlesByCategory error:", error);
-        }
+      fetchArticlesByCategory: async (_categoryId: string) => {
+        // Articles are loaded and synchronized via Firestore real-time listener and fetchInitialArticles
       },
       fetchArticleById: async (id: string) => {
         const state = useAppStore.getState();
         if (state.articles.find(a => a.id === id)) return;
         try {
-          const apiArticles = await fetchArticlesApi();
-          const found = apiArticles.find(a => a.id === id);
-          if (found) {
-            set((s) => ({ articles: [...s.articles, found] }));
+          const docSnap = await getDoc(doc(db, 'articles', id));
+          if (docSnap.exists()) {
+            const article = { ...docSnap.data(), id: docSnap.id } as Article;
+            if (!article.id.startsWith('fb-') && article.id !== '1' && article.id !== '2' && article.id !== '3') {
+              set((s) => ({ articles: [article, ...s.articles.filter(a => a.id !== id)] }));
+            }
           }
         } catch (error) {
           console.warn("fetchArticleById error:", error);
@@ -461,13 +450,21 @@ export const useAppStore = create<AppState>()(
         }
       })),
       partialize: (state) => ({
-        articles: state.articles,
+        articles: sanitizeArticles(state.articles),
         categories: state.categories,
         adBanners: state.adBanners,
         companyPages: state.companyPages,
         seoSettings: state.seoSettings,
         inquiries: state.inquiries,
-      })
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.articles = sanitizeArticles(state.articles || []);
+          if (state.articles.length > 0) {
+            state.hasFetchedInitialArticles = true;
+          }
+        }
+      }
     }
   )
 );

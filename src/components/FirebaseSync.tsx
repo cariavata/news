@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppStore } from '../store/useArticleStore';
-import { fallbackArticles, getFreshFallbackArticles, fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
+import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
 
 enum OperationType {
   CREATE = 'create',
@@ -20,53 +20,10 @@ interface FirestoreErrorInfo {
   authInfo: any;
 }
 
-const getFallbackArticles = () => [
-  {
-    id: "1",
-    title: "의료계 핫이슈를 한눈에! 데일리펄스 건강 뉴스 브리핑",
-    excerpt: "오늘의 주요 보건의료 이슈와 유용한 건강 정리를 쉽게 전달해 드립니다.",
-    content: "우리 가족의 건강을 위한 쉽고 유익한 의학 지식을 일상에서 바로 활용하실 수 있도록 자세히 공유하고자 합니다. 최근 보건 복지 정책부터 일상 예방 꿀팁까지 정확한 정보로 보답하겠습니다.",
-    categoryId: "checkup",
-    imageUrl: "",
-    createdAt: "2026-06-12T09:00:00.000Z",
-    author: "데일리펄스",
-    views: 1240,
-    likes: 85,
-    isFeatured: true,
-    isTrending: true,
-    isBreaking: true
-  },
-  {
-    id: "2",
-    title: "현대인의 고질병 목·허리 통증 완화하기: 척추관절 자가 케어 가이드",
-    excerpt: "오래 앉아 일하는 직장인들을 위한 실생활 올바른 자세와 틈새 스트레칭 팁을 전합니다.",
-    content: "잘못된 자세로 인한 디스크 탈출증 및 척추 관절 증후군을 복잡한 이론 대신 매일 3분씩 실천할 수 있는 쉬운 맨몸 회복 훈련으로 정리했습니다. 꾸준한 거북목 예방 스트레칭이 건강한 척추 수명을 늘립니다.",
-    categoryId: "spine-joint",
-    imageUrl: "",
-    createdAt: "2026-06-11T14:30:00.000Z",
-    author: "데일리펄스",
-    views: 890,
-    likes: 42,
-    isFeatured: false,
-    isTrending: true,
-    isBreaking: false
-  },
-  {
-    id: "3",
-    title: "건강검진 결과표 완벽 해독법: 나에게 꼭 필요한 검사항목 알아보기",
-    excerpt: "복잡한 의학 용어와 숫자로 가득한 종합 건강검진 결과표에서 주의해야 할 핵심 항목을 짚어봅니다.",
-    content: "혈압, 콜레스테롤, 공복혈당 수치 등 기초 만성 질환 지표의 정상 범위를 해설하고, 나이대별 맞춤형 추가 정밀검진 가이드라인을 알려 드립니다. 미리 발견하고 예방하는 것이 무엇보다 전인적 건강의 첫걸음입니다.",
-    categoryId: "checkup",
-    imageUrl: "",
-    createdAt: "2026-06-10T10:15:00.000Z",
-    author: "데일리펄스",
-    views: 1560,
-    likes: 112,
-    isFeatured: false,
-    isTrending: false,
-    isBreaking: false
-  }
-];
+const sanitizeArticles = (articles: any[]): any[] => {
+  if (!Array.isArray(articles)) return [];
+  return articles.filter(a => a && typeof a.id === 'string' && !a.id.startsWith('fb-') && a.id !== '1' && a.id !== '2' && a.id !== '3');
+};
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errMsg = error instanceof Error ? error.message : String(error);
@@ -86,13 +43,14 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
         if (cachedStr) {
           const cached = JSON.parse(cachedStr);
           useAppStore.setState({
-            articles: cached.articles || [],
+            articles: sanitizeArticles(cached.articles || []),
             categories: cached.categories || [],
             companyPages: cached.companyPages || [],
             adBanners: cached.adBanners || [],
             globalSearchKeywords: cached.globalSearchKeywords || [],
             inquiries: cached.inquiries || [],
-            seoSettings: cached.seoSettings || useAppStore.getState().seoSettings
+            seoSettings: cached.seoSettings || useAppStore.getState().seoSettings,
+            hasFetchedInitialArticles: true
           });
           console.warn(`[Offline Mode] Restored data from local cache.`);
           return;
@@ -100,13 +58,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
       }
     } catch (e) {}
 
-    // Provide fallback states to prevent empty UI
-    if (path === 'multiple' || path === 'articles') {
-      const currentArticles = useAppStore.getState().articles;
-      if (!currentArticles || currentArticles.length === 0) {
-        useAppStore.setState({ articles: fallbackArticles, hasFetchedInitialArticles: true });
-      }
-    } 
+    // Provide default categories/pages if empty
     if (path === 'multiple' || path === 'categories') {
       const currentCats = useAppStore.getState().categories;
       if (!currentCats || currentCats.length === 0) {
@@ -120,7 +72,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
       }
     }
 
-    console.warn(`[Offline Mode] DB limit reached on path '${path}'. Serving backup content gracefully.`);
+    useAppStore.setState({ hasFetchedInitialArticles: true });
+    console.warn(`[Offline Mode] DB limit reached on path '${path}'.`);
     return;
   }
 
@@ -154,15 +107,26 @@ export default function FirebaseSync() {
         collection(db, 'articles'),
         (snapshot) => {
           if (!snapshot.empty) {
-            const fetchedArticles = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            const raw = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            const fetchedArticles = sanitizeArticles(raw);
             fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
             useAppStore.setState({ articles: fetchedArticles, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            try {
+              localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
+                articles: fetchedArticles,
+                categories: useAppStore.getState().categories,
+                companyPages: useAppStore.getState().companyPages,
+                adBanners: useAppStore.getState().adBanners,
+                seoSettings: useAppStore.getState().seoSettings
+              }));
+            } catch (e) {}
           } else {
             useAppStore.setState({ articles: [], hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         },
         (error) => {
           console.warn("Real-time articles subscription error:", error);
+          handleFirestoreError(error, OperationType.LIST, 'articles');
           useAppStore.setState({ hasFetchedInitialArticles: true });
         }
       );
@@ -214,10 +178,10 @@ export default function FirebaseSync() {
 
     // 3. Real-time Company Pages Listener
     const defaultPages = [
-      { id: 'about', title: '소개', content: '회사 소개 내용입니다.' },
-      { id: 'guidelines', title: '편집 가이드라인', content: '편집 가이드라인 내용입니다.' },
-      { id: 'careers', title: '채용 정보', content: '채용 정보 내용입니다.' },
-      { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '약관 내용입니다.' },
+      { id: 'about', title: '소개', content: '데일리펄스는 독자 여러분께 정확하고 유용한 보건의료 뉴스 및 일상 건강 지식을 제공합니다.' },
+      { id: 'guidelines', title: '편집 가이드라인', content: '독립적이고 객관적인 시각에서 팩트에 기반한 저널리즘을 준수합니다.' },
+      { id: 'careers', title: '채용 정보', content: '데일리펄스와 함께 새로운 저널리즘의 미래를 만들어갈 인재를 기다립니다.' },
+      { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '고객님의 개인정보 보호를 최우선으로 생각합니다.' },
     ];
     try {
       const unsubPages = onSnapshot(
@@ -323,3 +287,4 @@ export default function FirebaseSync() {
 
   return null;
 }
+
