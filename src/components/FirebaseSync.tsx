@@ -22,7 +22,7 @@ interface FirestoreErrorInfo {
 
 const sanitizeArticles = (articles: any[]): any[] => {
   if (!Array.isArray(articles)) return [];
-  return articles.filter(a => a && typeof a.id === 'string' && !a.id.startsWith('fb-') && a.id !== '1' && a.id !== '2' && a.id !== '3');
+  return articles.filter(a => a && typeof a.id === 'string' && a.title);
 };
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {

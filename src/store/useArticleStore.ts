@@ -49,7 +49,7 @@ export const cleanFirestoreData = (data: Record<string, any>): Record<string, an
 
 export const sanitizeArticles = (articles: any[]): Article[] => {
   if (!Array.isArray(articles)) return [];
-  return articles.filter(a => a && typeof a.id === 'string' && !a.id.startsWith('fb-') && a.id !== '1' && a.id !== '2' && a.id !== '3') as Article[];
+  return articles.filter(a => a && typeof a.id === 'string' && a.title) as Article[];
 };
 
 export const ensureFallbackContent = () => {
@@ -253,7 +253,7 @@ export const useAppStore = create<AppState>()(
           const docSnap = await getDoc(doc(db, 'articles', id));
           if (docSnap.exists()) {
             const article = { ...docSnap.data(), id: docSnap.id } as Article;
-            if (!article.id.startsWith('fb-') && article.id !== '1' && article.id !== '2' && article.id !== '3') {
+            if (article && article.title) {
               set((s) => ({ articles: [article, ...s.articles.filter(a => a.id !== id)] }));
             }
           }

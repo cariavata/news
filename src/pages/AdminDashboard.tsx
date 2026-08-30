@@ -6,7 +6,10 @@ import { format } from 'date-fns';
 export default function AdminDashboard() {
   const { articles, deleteArticle, categories } = useAppStore();
 
-  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || id;
+  const getCategoryName = (article: any) => {
+    const catId = article.categoryId || article.category;
+    return categories.find(c => c.id === catId)?.name || catId || '미지정';
+  };
 
   const handleDelete = (id: string) => {
     if (window.confirm("정말 이 기사를 삭제하시겠습니까?")) {
@@ -41,7 +44,7 @@ export default function AdminDashboard() {
                   {article.title}
                 </td>
                 <td className="p-4 text-slate-600">
-                  {getCategoryName(article.categoryId)}
+                  {getCategoryName(article)}
                 </td>
                 <td className="p-4 ">
                   <div className="flex flex-wrap gap-2 justify-center">

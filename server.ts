@@ -10,7 +10,7 @@ import {
   getFirestoreDocument,
   setFirestoreDocument,
   deleteFirestoreDocument
-} from "./src/server/firestoreRest";
+} from "./src/server/firestoreService";
 
 let currentDir = "";
 try {

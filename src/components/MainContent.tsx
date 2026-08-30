@@ -144,8 +144,8 @@ export default function MainContent() {
         }
 
         const categoryArticles = articles
-          .filter(a => a.categoryId === category.id)
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          .filter(a => (a.categoryId === category.id || (a as any).category === category.id))
+          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
         if (categoryArticles.length === 0) return null;
 
