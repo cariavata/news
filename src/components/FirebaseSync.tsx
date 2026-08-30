@@ -13,13 +13,6 @@ enum OperationType {
   WRITE = 'write',
 }
 
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: any;
-}
-
 const sanitizeArticles = (articles: any[]): any[] => {
   if (!Array.isArray(articles)) return [];
   return articles.filter(a => a && typeof a.id === 'string' && a.title);
@@ -33,68 +26,55 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
                   errMsg.toLowerCase().includes('limit exceeded') ||
                   errMsg.toLowerCase().includes('429');
 
+  const isStreamCancelled = errMsg.toLowerCase().includes('cancelled') ||
+                            errMsg.toLowerCase().includes('disconnecting idle stream');
+
+  if (isStreamCancelled) {
+    // Benign gRPC stream idle timeout / disconnect
+    return;
+  }
+
   if (isQuota) {
-    useAppStore.setState({ isFirebaseSettingsLoaded: true });
+    useAppStore.setState({ isFirebaseSettingsLoaded: true, hasFetchedInitialArticles: true });
     
     // Attempt to load from offline cache first
     try {
-      if (path === 'multiple') {
-        const cachedStr = localStorage.getItem('__firestore_fallback_cache__');
-        if (cachedStr) {
-          const cached = JSON.parse(cachedStr);
-          useAppStore.setState({
-            articles: sanitizeArticles(cached.articles || []),
-            categories: cached.categories || [],
-            companyPages: cached.companyPages || [],
-            adBanners: cached.adBanners || [],
-            globalSearchKeywords: cached.globalSearchKeywords || [],
-            inquiries: cached.inquiries || [],
-            seoSettings: cached.seoSettings || useAppStore.getState().seoSettings,
-            hasFetchedInitialArticles: true
-          });
-          console.warn(`[Offline Mode] Restored data from local cache.`);
-          return;
-        }
+      const cachedStr = localStorage.getItem('__firestore_fallback_cache__');
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        const current = useAppStore.getState();
+        useAppStore.setState({
+          articles: (current.articles && current.articles.length > 0) ? current.articles : sanitizeArticles(cached.articles || []),
+          categories: (current.categories && current.categories.length > 0) ? current.categories : (cached.categories || fallbackCategories),
+          companyPages: (current.companyPages && current.companyPages.length > 0) ? current.companyPages : (cached.companyPages || fallbackCompanyPages),
+          adBanners: (current.adBanners && current.adBanners.length > 0) ? current.adBanners : (cached.adBanners || []),
+          seoSettings: cached.seoSettings || current.seoSettings,
+          hasFetchedInitialArticles: true,
+          isFirebaseSettingsLoaded: true
+        });
+        return;
       }
     } catch (e) {}
 
     // Provide default categories/pages if empty
-    if (path === 'multiple' || path === 'categories') {
-      const currentCats = useAppStore.getState().categories;
-      if (!currentCats || currentCats.length === 0) {
-        useAppStore.setState({ categories: fallbackCategories });
-      }
-    } 
-    if (path === 'multiple' || path === 'companyPages') {
-      const currentPages = useAppStore.getState().companyPages;
-      if (!currentPages || currentPages.length === 0) {
-        useAppStore.setState({ companyPages: fallbackCompanyPages });
-      }
+    const current = useAppStore.getState();
+    if (!current.categories || current.categories.length === 0) {
+      useAppStore.setState({ categories: fallbackCategories });
+    }
+    if (!current.companyPages || current.companyPages.length === 0) {
+      useAppStore.setState({ companyPages: fallbackCompanyPages });
     }
 
     useAppStore.setState({ hasFetchedInitialArticles: true });
-    console.warn(`[Offline Mode] DB limit reached on path '${path}'.`);
     return;
   }
-
-  const errInfo: FirestoreErrorInfo = {
-    error: errMsg,
-    authInfo: {
-      userId: null,
-      email: null,
-      emailVerified: null,
-      isAnonymous: true,
-    },
-    operationType,
-    path
-  };
 
   if (errMsg.includes('unavailable') || errMsg.includes('offline') || errMsg.includes('Could not reach')) {
-    console.warn('Firestore is temporarily offline. Continuing with last cached state.');
+    useAppStore.setState({ hasFetchedInitialArticles: true, isFirebaseSettingsLoaded: true });
     return;
   }
 
-  console.error('Database connection message: ', JSON.stringify(errInfo));
+  console.warn(`Firestore sync notification (${path}):`, errMsg);
 }
 
 export default function FirebaseSync() {
@@ -121,35 +101,20 @@ export default function FirebaseSync() {
               }));
             } catch (e) {}
           } else {
-            const current = useAppStore.getState().articles;
-            if (!current || current.length === 0) {
-              useAppStore.setState({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
-            } else {
-              useAppStore.setState({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
-            }
+            useAppStore.setState({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         },
         (error) => {
-          console.warn("Real-time articles subscription error:", error);
           handleFirestoreError(error, OperationType.LIST, 'articles');
-          useAppStore.setState({ hasFetchedInitialArticles: true });
         }
       );
       unsubscribes.push(unsubArticles);
     } catch (e) {
-      console.warn("Could not attach articles listener:", e);
       useAppStore.setState({ hasFetchedInitialArticles: true });
     }
 
     // 2. Real-time Categories Listener
-    const defaultCats = [
-      { id: 'checkup', name: '건강검진' },
-      { id: 'womens-health', name: '여성건강' },
-      { id: 'oriental-med', name: '한의학' },
-      { id: 'spine-joint', name: '척추관절' },
-      { id: 'cardnews', name: '카드뉴스' },
-      { id: 'opinion', name: '오피니언' }
-    ];
+    const defaultCats = fallbackCategories;
     const orderMap = new Map(defaultCats.map((c, i) => [c.id, i]));
 
     try {
@@ -174,20 +139,17 @@ export default function FirebaseSync() {
             useAppStore.setState({ categories: defaultCats });
           }
         },
-        (error) => console.warn("Real-time categories error:", error)
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'categories');
+        }
       );
       unsubscribes.push(unsubCategories);
     } catch (e) {
-      console.warn("Could not attach categories listener:", e);
+      useAppStore.setState({ categories: defaultCats });
     }
 
     // 3. Real-time Company Pages Listener
-    const defaultPages = [
-      { id: 'about', title: '소개', content: '데일리펄스는 독자 여러분께 정확하고 유용한 보건의료 뉴스 및 일상 건강 지식을 제공합니다.' },
-      { id: 'guidelines', title: '편집 가이드라인', content: '독립적이고 객관적인 시각에서 팩트에 기반한 저널리즘을 준수합니다.' },
-      { id: 'careers', title: '채용 정보', content: '데일리펄스와 함께 새로운 저널리즘의 미래를 만들어갈 인재를 기다립니다.' },
-      { id: 'privacy', title: '개인정보 처리방침 및 약관', content: '고객님의 개인정보 보호를 최우선으로 생각합니다.' },
-    ];
+    const defaultPages = fallbackCompanyPages;
     try {
       const unsubPages = onSnapshot(
         collection(db, 'companyPages'),
@@ -205,11 +167,13 @@ export default function FirebaseSync() {
             useAppStore.setState({ companyPages: defaultPages });
           }
         },
-        (error) => console.warn("Real-time pages error:", error)
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'companyPages');
+        }
       );
       unsubscribes.push(unsubPages);
     } catch (e) {
-      console.warn("Could not attach pages listener:", e);
+      useAppStore.setState({ companyPages: defaultPages });
     }
 
     // 4. Real-time Ad Banners Listener
@@ -220,7 +184,9 @@ export default function FirebaseSync() {
           const adBanners = adSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
           useAppStore.setState({ adBanners });
         },
-        (error) => console.warn("Real-time ads error:", error)
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'adBanners');
+        }
       );
       unsubscribes.push(unsubAds);
     } catch (e) {}
@@ -235,7 +201,9 @@ export default function FirebaseSync() {
             useAppStore.getState().setGlobalSearchKeywords(keywords);
           }
         },
-        (error) => console.warn("Real-time keywords error:", error)
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'searchKeywords');
+        }
       );
       unsubscribes.push(unsubKeywords);
     } catch (e) {}
@@ -257,8 +225,7 @@ export default function FirebaseSync() {
           }
         },
         (error) => {
-          console.warn("Real-time SEO settings error:", error);
-          useAppStore.setState({ isFirebaseSettingsLoaded: true });
+          handleFirestoreError(error, OperationType.GET, 'settings/seo');
         }
       );
       unsubscribes.push(unsubSeo);
@@ -275,7 +242,9 @@ export default function FirebaseSync() {
           inquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           useAppStore.setState({ inquiries });
         },
-        (error) => console.warn("Real-time inquiries error:", error)
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'inquiries');
+        }
       );
       unsubscribes.push(unsubInquiries);
     } catch (e) {}
@@ -292,4 +261,3 @@ export default function FirebaseSync() {
 
   return null;
 }
-
