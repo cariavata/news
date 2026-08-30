@@ -80,45 +80,35 @@ export default function App() {
         </Helmet>
       )}
 
-      {!isFirebaseSettingsLoaded ? (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-          <span className="text-slate-400 font-medium tracking-wide text-sm">로딩중...</span>
-        </div>
-      ) : (
-        <>
+      <BrowserRouter>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/article/:id" element={<ArticleDetail />} />
+          <Route path="/category/:categoryId" element={<CategoryView />} />
+          <Route path="/info/:id" element={<CompanyPageView />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           
-          <BrowserRouter>
-            <ScrollToTop />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/article/:id" element={<ArticleDetail />} />
-              <Route path="/category/:categoryId" element={<CategoryView />} />
-              <Route path="/info/:id" element={<CompanyPageView />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              
-              {/* Admin Routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="analytics" element={<AdminAnalytics />} />
-                  <Route path="categories" element={<AdminCategories />} />
-                  <Route path="opinions" element={<AdminOpinions />} />
-                  <Route path="company-pages" element={<AdminCompanyPages />} />
-                  <Route path="company-pages/new" element={<AdminCompanyPageForm />} />
-                  <Route path="company-pages/edit/:id" element={<AdminCompanyPageForm />} />
-                  <Route path="inquiries" element={<AdminInquiries />} />
-                  <Route path="ads" element={<AdminAds />} />
-                  <Route path="seo" element={<AdminSEO />} />
-                  <Route path="article/new" element={<ArticleForm />} />
-                  <Route path="article/:id" element={<ArticleForm />} />
-                </Route>
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </>
-      )}
+          {/* Admin Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="opinions" element={<AdminOpinions />} />
+              <Route path="company-pages" element={<AdminCompanyPages />} />
+              <Route path="company-pages/new" element={<AdminCompanyPageForm />} />
+              <Route path="company-pages/edit/:id" element={<AdminCompanyPageForm />} />
+              <Route path="inquiries" element={<AdminInquiries />} />
+              <Route path="ads" element={<AdminAds />} />
+              <Route path="seo" element={<AdminSEO />} />
+              <Route path="article/new" element={<ArticleForm />} />
+              <Route path="article/:id" element={<ArticleForm />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </HelmetProvider>
   );
 }

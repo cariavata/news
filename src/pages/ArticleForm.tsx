@@ -30,18 +30,20 @@ export default function ArticleForm() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingDoctorImage, setUploadingDoctorImage] = useState(false);
+  const [uploadingCardImages, setUploadingCardImages] = useState(false);
 
   useEffect(() => {
     if (id) {
       const article = articles.find(a => a.id === id);
       if (article) {
         setFormData({
-          title: article.title,
-          excerpt: article.excerpt,
-          content: article.content,
-          categoryId: article.categoryId,
-          imageUrl: article.imageUrl,
-          author: '데일리펄스',
+          title: article.title || '',
+          excerpt: article.excerpt || '',
+          content: article.content || '',
+          categoryId: article.categoryId || categories[0]?.id || '',
+          imageUrl: article.imageUrl || '',
+          author: article.author || '데일리펄스',
           isFeatured: article.isFeatured || false,
           isTrending: article.isTrending || false,
           isBreaking: article.isBreaking || false,
@@ -60,6 +62,10 @@ export default function ArticleForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
+    if (uploadingImage || uploadingDoctorImage || uploadingCardImages) {
+      alert("이미지가 아직 업로드/처리 중입니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
     setIsSaving(true);
     try {
       if (id) {
@@ -77,26 +83,30 @@ export default function ArticleForm() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadingImage(true);
+    if (!file) return;
+    setUploadingImage(true);
+    try {
       try {
         const urls = await uploadImagesApi([file]);
         if (urls && urls.length > 0) {
           setFormData(prev => ({ ...prev, imageUrl: urls[0] }));
+          return;
         }
-      } catch (err) {
-        compressImage(file, 1200, 1200, (base64) => {
-          setFormData(prev => ({ ...prev, imageUrl: base64 }));
-        });
-      } finally {
-        setUploadingImage(false);
+      } catch (err) {}
+      const base64 = await compressImage(file, 900, 900, 0.7);
+      if (base64) {
+        setFormData(prev => ({ ...prev, imageUrl: base64 }));
       }
+    } finally {
+      setUploadingImage(false);
     }
   };
 
   const handleDoctorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    setUploadingDoctorImage(true);
+    try {
       try {
         const urls = await uploadImagesApi([file]);
         if (urls && urls.length > 0) {
@@ -104,27 +114,35 @@ export default function ArticleForm() {
           return;
         }
       } catch (err) {}
-      compressImage(file, 500, 500, (base64) => {
+      const base64 = await compressImage(file, 400, 400, 0.7);
+      if (base64) {
         setFormData(prev => ({ ...prev, doctorImage: base64 }));
-      });
+      }
+    } finally {
+      setUploadingDoctorImage(false);
     }
   };
 
   const handleCardNewsImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+    setUploadingCardImages(true);
     try {
-      const urls = await uploadImagesApi(files);
-      if (urls && urls.length > 0) {
-        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...urls] }));
-        return;
+      try {
+        const urls = await uploadImagesApi(files);
+        if (urls && urls.length > 0) {
+          setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...urls] }));
+          return;
+        }
+      } catch (err) {}
+      const compressedList = await Promise.all(files.map(f => compressImage(f, 900, 900, 0.7)));
+      const valid = compressedList.filter(Boolean);
+      if (valid.length > 0) {
+        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...valid] }));
       }
-    } catch (err) {}
-    files.forEach(file => {
-      compressImage(file, 1080, 1080, (base64) => {
-        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, base64] }));
-      });
-    });
+    } finally {
+      setUploadingCardImages(false);
+    }
   };
 
   return (

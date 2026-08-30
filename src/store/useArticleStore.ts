@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage, Inquiry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
-import { doc, setDoc, updateDoc, deleteDoc, getDocs, collection, getDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, getDocs, collection, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
   createArticleApi,
@@ -11,7 +11,6 @@ import {
   deleteArticleApi,
   incrementArticleViewsApi,
   saveSeoSettingsApi,
-  fetchSeoSettingsApi
 } from '../lib/api';
 
 export interface AnalyticsData {
@@ -30,6 +29,23 @@ export interface SearchKeywordData {
   lastSearchedAt: string;
   createdAt?: string;
 }
+
+export const cleanFirestoreData = (data: Record<string, any>): Record<string, any> => {
+  if (!data || typeof data !== 'object') return {};
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      if (Array.isArray(value)) {
+        clean[key] = value.filter(item => item !== undefined);
+      } else if (value && typeof value === 'object' && !(value instanceof Date)) {
+        clean[key] = cleanFirestoreData(value);
+      } else {
+        clean[key] = value;
+      }
+    }
+  }
+  return clean;
+};
 
 export const sanitizeArticles = (articles: any[]): Article[] => {
   if (!Array.isArray(articles)) return [];
@@ -67,9 +83,9 @@ interface AppState {
   logout: () => void;
 
   categories: CategoryInfo[];
-  addCategory: (name: string) => void;
-  updateCategory: (id: string, updates: Partial<CategoryInfo>) => void;
-  deleteCategory: (id: string) => void;
+  addCategory: (name: string) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<CategoryInfo>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 
   articles: Article[];
   hasFetchedInitialArticles: boolean;
@@ -84,18 +100,18 @@ interface AppState {
   toggleArticleLike: (id: string, isLiking: boolean) => void;
 
   adBanners: AdBanner[];
-  addAdBanner: (banner: Omit<AdBanner, "id">) => void;
-  deleteAdBanner: (id: string) => void;
+  addAdBanner: (banner: Omit<AdBanner, "id">) => Promise<void>;
+  deleteAdBanner: (id: string) => Promise<void>;
 
   companyPages: CompanyPage[];
-  addCompanyPage: (page: Omit<CompanyPage, "id">) => void;
-  updateCompanyPage: (id: string, page: Partial<CompanyPage>) => void;
-  deleteCompanyPage: (id: string) => void;
+  addCompanyPage: (page: Omit<CompanyPage, "id">) => Promise<void>;
+  updateCompanyPage: (id: string, page: Partial<CompanyPage>) => Promise<void>;
+  deleteCompanyPage: (id: string) => Promise<void>;
 
   inquiries: Inquiry[];
-  addInquiry: (inquiryData: Omit<Inquiry, 'id' | 'createdAt'>) => void;
-  deleteInquiry: (id: string) => void;
-  deleteMultipleInquiries: (ids: string[]) => void;
+  addInquiry: (inquiryData: Omit<Inquiry, 'id' | 'createdAt'>) => Promise<void>;
+  deleteInquiry: (id: string) => Promise<void>;
+  deleteMultipleInquiries: (ids: string[]) => Promise<void>;
 
   seoSettings: SeoSettings;
   updateSeoSettings: (settings: SeoSettings) => Promise<void>;
@@ -148,12 +164,25 @@ export const generateSeedAnalyticsData = (): AnalyticsData => {
     dailyReferrers[dateStr] = {
       'naver.com': Math.floor(count * 0.48),
       'google.com': Math.floor(count * 0.34),
-      'daum.net': Math.floor(count * 0.10),
-      '직접 유입': Math.floor(count * 0.08)
+      'daum.net': Math.floor(count * 0.12),
+      'direct': Math.floor(count * 0.06)
+    };
+    dailyKeywords[dateStr] = {
+      '건강검진': Math.floor(count * 0.15),
+      '영양제': Math.floor(count * 0.12),
+      '디스크': Math.floor(count * 0.10),
+      '한의원': Math.floor(count * 0.08)
     };
   }
 
-  return { dailyViews, dailyKeywords, dailyDevices, dailyReferrers, keywords, devices };
+  return {
+    dailyViews,
+    dailyKeywords,
+    dailyDevices,
+    dailyReferrers,
+    keywords,
+    devices
+  };
 };
 
 export const useAppStore = create<AppState>()(
@@ -172,17 +201,18 @@ export const useAppStore = create<AppState>()(
         const obj = { id, name, order };
         set((state) => ({ categories: [...state.categories, obj] }));
         try {
-          await setDoc(doc(db, 'categories', id), obj);
+          await setDoc(doc(db, 'categories', id), cleanFirestoreData(obj));
         } catch (e) {
           console.warn("addCategory Firestore error:", e);
         }
       },
       updateCategory: async (id, updates) => {
+        const cleanUpdates = cleanFirestoreData(updates);
         set((state) => ({
-          categories: state.categories.map(c => c.id === id ? { ...c, ...updates } : c)
+          categories: state.categories.map(c => c.id === id ? { ...c, ...cleanUpdates } : c)
         }));
         try {
-          await updateDoc(doc(db, 'categories', id), updates);
+          await setDoc(doc(db, 'categories', id), cleanUpdates, { merge: true });
         } catch (e) {
           console.warn("updateCategory Firestore error:", e);
         }
@@ -197,7 +227,7 @@ export const useAppStore = create<AppState>()(
       },
 
       articles: [],
-      hasFetchedInitialArticles: false,
+      hasFetchedInitialArticles: true,
       categoryFetchStatus: {},
       fetchInitialArticles: async () => {
         try {
@@ -208,16 +238,14 @@ export const useAppStore = create<AppState>()(
             fetched.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
             set({ articles: fetched, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           } else {
-            set({ articles: [], hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            set({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         } catch (error) {
           console.warn("fetchInitialArticles Firestore error:", error);
           set({ hasFetchedInitialArticles: true });
         }
       },
-      fetchArticlesByCategory: async (_categoryId: string) => {
-        // Articles are loaded and synchronized via Firestore real-time listener and fetchInitialArticles
-      },
+      fetchArticlesByCategory: async (_categoryId: string) => {},
       fetchArticleById: async (id: string) => {
         const state = useAppStore.getState();
         if (state.articles.find(a => a.id === id)) return;
@@ -234,53 +262,100 @@ export const useAppStore = create<AppState>()(
         }
       },
       addArticle: async (articleData) => {
-        const id = uuidv4();
-        const obj = { ...articleData, id, createdAt: new Date().toISOString() } as Article;
+        const id = (articleData as any).id || uuidv4();
+        const rawObj = {
+          ...articleData,
+          id,
+          createdAt: (articleData as any).createdAt || new Date().toISOString(),
+          views: articleData.views || 0,
+          likes: articleData.likes || 0,
+        };
+        const cleanObj = cleanFirestoreData(rawObj);
+        const obj = cleanObj as Article;
+
+        // 1. Immediate UI update
         set((state) => {
-          const newArticles = [obj, ...state.articles];
+          const filtered = state.articles.filter(a => a.id !== id);
+          const newArticles = [obj, ...filtered];
           newArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          return { articles: newArticles };
+          return { articles: newArticles, hasFetchedInitialArticles: true };
         });
+
+        // 2. Direct Firestore storage
         try {
-          await setDoc(doc(db, 'articles', id), obj);
+          await setDoc(doc(db, 'articles', id), cleanObj);
         } catch (error) {
-          console.warn("addArticle Firestore error:", error);
+          console.error("addArticle Firestore error:", error);
         }
+
+        // 3. Keep fallback cache synced
+        try {
+          const current = useAppStore.getState().articles;
+          localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
+            articles: current,
+            categories: useAppStore.getState().categories,
+            companyPages: useAppStore.getState().companyPages,
+            adBanners: useAppStore.getState().adBanners,
+            seoSettings: useAppStore.getState().seoSettings
+          }));
+        } catch (e) {}
+
+        // 4. API notification if server active
         try {
           await createArticleApi(obj);
-        } catch (error) {
-          console.warn("addArticle API error:", error);
-        }
+        } catch (error) {}
       },
       updateArticle: async (id, updatedArticle) => {
+        const cleanUpdates = cleanFirestoreData(updatedArticle);
         set((state) => {
-          const updated = state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article);
+          const updated = state.articles.map(article => article.id === id ? { ...article, ...cleanUpdates } : article);
           updated.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
           return { articles: updated };
         });
+
         try {
-          await updateDoc(doc(db, 'articles', id), updatedArticle);
+          await setDoc(doc(db, 'articles', id), cleanUpdates, { merge: true });
         } catch (error) {
-          console.warn("updateArticle Firestore error:", error);
+          console.error("updateArticle Firestore error:", error);
         }
+
         try {
-          await updateArticleApi(id, updatedArticle);
-        } catch (error) {
-          console.warn("updateArticle API error:", error);
-        }
+          const current = useAppStore.getState().articles;
+          localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
+            articles: current,
+            categories: useAppStore.getState().categories,
+            companyPages: useAppStore.getState().companyPages,
+            adBanners: useAppStore.getState().adBanners,
+            seoSettings: useAppStore.getState().seoSettings
+          }));
+        } catch (e) {}
+
+        try {
+          await updateArticleApi(id, cleanUpdates);
+        } catch (error) {}
       },
       deleteArticle: async (id) => {
         set((state) => ({ articles: state.articles.filter(article => article.id !== id) }));
         try {
           await deleteDoc(doc(db, 'articles', id));
         } catch (error) {
-          console.warn("deleteArticle Firestore error:", error);
+          console.error("deleteArticle Firestore error:", error);
         }
+
+        try {
+          const current = useAppStore.getState().articles.filter(a => a.id !== id);
+          localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
+            articles: current,
+            categories: useAppStore.getState().categories,
+            companyPages: useAppStore.getState().companyPages,
+            adBanners: useAppStore.getState().adBanners,
+            seoSettings: useAppStore.getState().seoSettings
+          }));
+        } catch (e) {}
+
         try {
           await deleteArticleApi(id);
-        } catch (error) {
-          console.warn("deleteArticle API error:", error);
-        }
+        } catch (error) {}
       },
       incrementArticleViews: (id: string) => {
         set((state) => ({
@@ -303,9 +378,10 @@ export const useAppStore = create<AppState>()(
       addAdBanner: async (bannerData) => {
         const id = uuidv4();
         const obj = { ...bannerData, id };
-        set((state) => ({ adBanners: [...state.adBanners, obj] }));
+        const cleanObj = cleanFirestoreData(obj);
+        set((state) => ({ adBanners: [...state.adBanners, cleanObj as AdBanner] }));
         try {
-          await setDoc(doc(db, 'adBanners', id), obj);
+          await setDoc(doc(db, 'adBanners', id), cleanObj);
         } catch (e) {
           console.warn("addAdBanner Firestore error:", e);
         }
@@ -323,19 +399,21 @@ export const useAppStore = create<AppState>()(
       addCompanyPage: async (pageData) => {
         const id = uuidv4();
         const obj = { ...pageData, id };
-        set((state) => ({ companyPages: [...state.companyPages, obj] }));
+        const cleanObj = cleanFirestoreData(obj);
+        set((state) => ({ companyPages: [...state.companyPages, cleanObj as CompanyPage] }));
         try {
-          await setDoc(doc(db, 'companyPages', id), obj);
+          await setDoc(doc(db, 'companyPages', id), cleanObj);
         } catch (e) {
           console.warn("addCompanyPage Firestore error:", e);
         }
       },
       updateCompanyPage: async (id, pageData) => {
+        const cleanUpdates = cleanFirestoreData(pageData);
         set((state) => ({
-          companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...pageData } : page)
+          companyPages: state.companyPages.map(page => page.id === id ? { ...page, ...cleanUpdates } : page)
         }));
         try {
-          await updateDoc(doc(db, 'companyPages', id), pageData);
+          await setDoc(doc(db, 'companyPages', id), cleanUpdates, { merge: true });
         } catch (e) {
           console.warn("updateCompanyPage Firestore error:", e);
         }
@@ -353,9 +431,10 @@ export const useAppStore = create<AppState>()(
       addInquiry: async (inquiryData) => {
         const id = uuidv4();
         const obj = { ...inquiryData, id, createdAt: new Date().toISOString(), status: 'unread' as const };
-        set((state) => ({ inquiries: [obj, ...state.inquiries] }));
+        const cleanObj = cleanFirestoreData(obj);
+        set((state) => ({ inquiries: [cleanObj as Inquiry, ...state.inquiries] }));
         try {
-          await setDoc(doc(db, 'inquiries', id), obj);
+          await setDoc(doc(db, 'inquiries', id), cleanObj);
         } catch (e) {
           console.warn("addInquiry Firestore error:", e);
         }
@@ -389,19 +468,18 @@ export const useAppStore = create<AppState>()(
         keywords: "건강, 의학, 보건, 의료, 건강검진, 여성건강, 한의학, 척추관절, 카드뉴스, 오피니언",
         robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml",
         adsTxt: "google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0",
-        sitemapXml: "",
-        rssXml: "",
+        naverSiteVerification: "a9a11caab39330cf1a67069dc1c487ed49b767c4",
+        googleSiteVerification: "",
+        googleAdsenseClient: "ca-pub-6799823492487492",
         ogTitle: "DAILY PULSE | 신뢰할 수 있는 보건의료 소식",
         ogDescription: "우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.",
-        ogImage: "",
-        naverSiteVerification: "d060eade5473b610c0645fe41bbce092e0917fad",
-        googleSiteVerification: "57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68",
-        googleAdsenseClient: "ca-pub-6799823492487492"
+        ogImage: ""
       },
       updateSeoSettings: async (settings) => {
-        set({ seoSettings: settings });
+        const cleanObj = cleanFirestoreData(settings);
+        set({ seoSettings: cleanObj as SeoSettings });
         try {
-          await setDoc(doc(db, 'settings', 'seo'), settings, { merge: true });
+          await setDoc(doc(db, 'settings', 'seo'), cleanObj, { merge: true });
         } catch (e) {
           console.warn("Save SEO settings Firestore error:", e);
         }
@@ -475,9 +553,8 @@ export const useAppStore = create<AppState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.articles = sanitizeArticles(state.articles || []);
-          if (state.articles.length > 0) {
-            state.hasFetchedInitialArticles = true;
-          }
+          state.hasFetchedInitialArticles = true;
+          state.isFirebaseSettingsLoaded = true;
         }
       }
     }

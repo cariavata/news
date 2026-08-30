@@ -121,7 +121,12 @@ export default function FirebaseSync() {
               }));
             } catch (e) {}
           } else {
-            useAppStore.setState({ articles: [], hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            const current = useAppStore.getState().articles;
+            if (!current || current.length === 0) {
+              useAppStore.setState({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            } else {
+              useAppStore.setState({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            }
           }
         },
         (error) => {
