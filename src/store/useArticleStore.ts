@@ -164,21 +164,36 @@ export const useAppStore = create<AppState>()(
       logout: () => set({ isAuthenticated: false }),
 
       categories: fallbackCategories,
-      addCategory: (name) => {
+      addCategory: async (name) => {
         const id = uuidv4();
         const currentCategories = useAppStore.getState().categories;
         const maxOrder = currentCategories.reduce((max, c) => Math.max(max, c.order ?? 999), -1);
         const order = maxOrder === -1 || maxOrder === 999 ? currentCategories.length : maxOrder + 1;
         const obj = { id, name, order };
         set((state) => ({ categories: [...state.categories, obj] }));
+        try {
+          await setDoc(doc(db, 'categories', id), obj);
+        } catch (e) {
+          console.warn("addCategory Firestore error:", e);
+        }
       },
-      updateCategory: (id, updates) => {
+      updateCategory: async (id, updates) => {
         set((state) => ({
           categories: state.categories.map(c => c.id === id ? { ...c, ...updates } : c)
         }));
+        try {
+          await updateDoc(doc(db, 'categories', id), updates);
+        } catch (e) {
+          console.warn("updateCategory Firestore error:", e);
+        }
       },
-      deleteCategory: (id) => {
+      deleteCategory: async (id) => {
         set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
+        try {
+          await deleteDoc(doc(db, 'categories', id));
+        } catch (e) {
+          console.warn("deleteCategory Firestore error:", e);
+        }
       },
 
       articles: [],

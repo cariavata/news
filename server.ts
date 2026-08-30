@@ -5,6 +5,12 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import { connectDB, isMongoConnected, ArticleModel, CategoryModel, CompanyPageModel, SeoSettingsModel } from "./src/server/db";
 import { uploadToExternalStorage } from "./src/server/storage";
+import {
+  getFirestoreCollection,
+  getFirestoreDocument,
+  setFirestoreDocument,
+  deleteFirestoreDocument
+} from "./src/server/firestoreRest";
 
 let currentDir = "";
 try {
@@ -27,11 +33,18 @@ async function startServer() {
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   const isProd = process.env.NODE_ENV === "production";
 
-  // Connect to MongoDB Atlas
+  // Static uploads directory for media files
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  try {
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (e) {}
+  app.use("/uploads", express.static(uploadsDir));
+
+  // Connect to MongoDB Atlas (if configured)
   await connectDB();
 
   // -------------------------------------------------------------
-  // REST API Endpoints for MongoDB & External Storage
+  // REST API Endpoints for Firestore, MongoDB & External Storage
   // -------------------------------------------------------------
 
   // Image upload API
@@ -55,13 +68,19 @@ async function startServer() {
   // Articles API
   app.get("/api/articles", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.json([]);
-      const articles = await (ArticleModel as any).find().sort({ createdAt: -1 }).lean().exec();
-      if (articles && articles.length > 0) {
-        return res.json(articles.map((a: any) => ({
-          ...a,
-          id: a._id.toString()
-        })));
+      const firestoreArticles = await getFirestoreCollection("articles");
+      if (firestoreArticles && firestoreArticles.length > 0) {
+        firestoreArticles.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        return res.json(firestoreArticles);
+      }
+      if (isMongoConnected()) {
+        const articles = await (ArticleModel as any).find().sort({ createdAt: -1 }).lean().exec();
+        if (articles && articles.length > 0) {
+          return res.json(articles.map((a: any) => ({
+            ...a,
+            id: a._id.toString()
+          })));
+        }
       }
       res.json([]);
     } catch (error: any) {
@@ -71,10 +90,14 @@ async function startServer() {
 
   app.get("/api/articles/:id", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(404).json({ error: "Article not found" });
-      const article = await (ArticleModel as any).findById(req.params.id).lean().exec();
-      if (!article) return res.status(404).json({ error: "Article not found" });
-      res.json({ ...(article as any), id: (article as any)._id.toString() });
+      const doc = await getFirestoreDocument("articles", req.params.id);
+      if (doc) return res.json(doc);
+
+      if (isMongoConnected()) {
+        const article = await (ArticleModel as any).findById(req.params.id).lean().exec();
+        if (article) return res.json({ ...(article as any), id: (article as any)._id.toString() });
+      }
+      return res.status(404).json({ error: "Article not found" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -82,11 +105,18 @@ async function startServer() {
 
   app.post("/api/articles", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(503).json({ error: "Database not connected" });
-      const article = new (ArticleModel as any)(req.body);
-      await article.save();
-      const obj = article.toObject();
-      res.status(201).json({ ...obj, id: obj._id.toString() });
+      const articleData = req.body;
+      const id = articleData.id || `art_${Date.now()}`;
+      const savedDoc = await setFirestoreDocument("articles", id, { ...articleData, id });
+
+      if (isMongoConnected()) {
+        try {
+          const article = new (ArticleModel as any)({ ...articleData, _id: id });
+          await article.save();
+        } catch (e) {}
+      }
+
+      res.status(201).json(savedDoc || { ...articleData, id });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -94,10 +124,16 @@ async function startServer() {
 
   app.put("/api/articles/:id", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(503).json({ error: "Database not connected" });
-      const article = await (ArticleModel as any).findByIdAndUpdate(req.params.id, req.body, { new: true }).lean().exec();
-      if (!article) return res.status(404).json({ error: "Article not found" });
-      res.json({ ...(article as any), id: (article as any)._id.toString() });
+      const id = req.params.id;
+      const updated = await setFirestoreDocument("articles", id, { ...req.body, id });
+
+      if (isMongoConnected()) {
+        try {
+          await (ArticleModel as any).findByIdAndUpdate(id, req.body, { new: true }).lean().exec();
+        } catch (e) {}
+      }
+
+      res.json(updated || { ...req.body, id });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -105,8 +141,15 @@ async function startServer() {
 
   app.delete("/api/articles/:id", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(503).json({ error: "Database not connected" });
-      await (ArticleModel as any).findByIdAndDelete(req.params.id).exec();
+      const id = req.params.id;
+      await deleteFirestoreDocument("articles", id);
+
+      if (isMongoConnected()) {
+        try {
+          await (ArticleModel as any).findByIdAndDelete(id).exec();
+        } catch (e) {}
+      }
+
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -116,9 +159,18 @@ async function startServer() {
   // Views / Likes increment API
   app.post("/api/articles/:id/views", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.json({ views: 0 });
-      const article = await (ArticleModel as any).findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true }).lean().exec();
-      res.json({ views: (article as any)?.views || 0 });
+      const id = req.params.id;
+      const current = await getFirestoreDocument("articles", id);
+      if (current) {
+        const views = (current.views || 0) + 1;
+        await setFirestoreDocument("articles", id, { ...current, views });
+        return res.json({ views });
+      }
+      if (isMongoConnected()) {
+        const article = await (ArticleModel as any).findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true }).lean().exec();
+        return res.json({ views: (article as any)?.views || 0 });
+      }
+      res.json({ views: 0 });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -127,9 +179,13 @@ async function startServer() {
   // Categories API
   app.get("/api/categories", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.json([]);
-      const categories = await (CategoryModel as any).find().lean().exec();
-      res.json(categories);
+      const cats = await getFirestoreCollection("categories");
+      if (cats && cats.length > 0) return res.json(cats);
+      if (isMongoConnected()) {
+        const categories = await (CategoryModel as any).find().lean().exec();
+        if (categories && categories.length > 0) return res.json(categories);
+      }
+      res.json(defaultCategories);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -137,10 +193,15 @@ async function startServer() {
 
   app.post("/api/categories", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(503).json({ error: "Database not connected" });
-      const cat = new (CategoryModel as any)(req.body);
-      await cat.save();
-      res.status(201).json(cat.toObject());
+      const id = req.body.id || `cat_${Date.now()}`;
+      await setFirestoreDocument("categories", id, { ...req.body, id });
+      if (isMongoConnected()) {
+        try {
+          const cat = new (CategoryModel as any)({ ...req.body, _id: id });
+          await cat.save();
+        } catch (e) {}
+      }
+      res.status(201).json({ ...req.body, id });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -149,9 +210,13 @@ async function startServer() {
   // Company Pages API
   app.get("/api/company-pages", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.json([]);
-      const pages = await (CompanyPageModel as any).find().lean().exec();
-      res.json(pages);
+      const pages = await getFirestoreCollection("companyPages");
+      if (pages && pages.length > 0) return res.json(pages);
+      if (isMongoConnected()) {
+        const mPages = await (CompanyPageModel as any).find().lean().exec();
+        if (mPages && mPages.length > 0) return res.json(mPages);
+      }
+      res.json(defaultCompanyPages);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -159,13 +224,18 @@ async function startServer() {
 
   app.put("/api/company-pages/:id", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(503).json({ error: "Database not connected" });
-      const page = await (CompanyPageModel as any).findOneAndUpdate(
-        { id: req.params.id },
-        { ...req.body, updateTime: new Date().toISOString() },
-        { upsert: true, new: true }
-      ).lean().exec();
-      res.json(page);
+      const id = req.params.id;
+      const updated = await setFirestoreDocument("companyPages", id, { ...req.body, id, updateTime: new Date().toISOString() });
+      if (isMongoConnected()) {
+        try {
+          await (CompanyPageModel as any).findOneAndUpdate(
+            { id },
+            { ...req.body, updateTime: new Date().toISOString() },
+            { upsert: true, new: true }
+          ).lean().exec();
+        } catch (e) {}
+      }
+      res.json(updated || { ...req.body, id });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -174,14 +244,13 @@ async function startServer() {
   // SEO Settings API
   app.get("/api/seo", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.json({});
-      let seo = await (SeoSettingsModel as any).findOne({ id: "seo" }).lean().exec();
-      if (!seo) {
-        const newSeo = new (SeoSettingsModel as any)({ id: "seo" });
-        await newSeo.save();
-        seo = newSeo.toObject();
+      const seo = await getFirestoreDocument("settings", "seo");
+      if (seo) return res.json(seo);
+      if (isMongoConnected()) {
+        let mSeo = await (SeoSettingsModel as any).findOne({ id: "seo" }).lean().exec();
+        if (mSeo) return res.json(mSeo);
       }
-      res.json(seo);
+      res.json({});
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -189,9 +258,13 @@ async function startServer() {
 
   app.post("/api/seo", async (req, res) => {
     try {
-      if (!isMongoConnected()) return res.status(503).json({ error: "Database not connected" });
-      const seo = await (SeoSettingsModel as any).findOneAndUpdate({ id: "seo" }, req.body, { upsert: true, new: true }).lean().exec();
-      res.json(seo);
+      const updated = await setFirestoreDocument("settings", "seo", { ...req.body, id: "seo" });
+      if (isMongoConnected()) {
+        try {
+          await (SeoSettingsModel as any).findOneAndUpdate({ id: "seo" }, req.body, { upsert: true, new: true }).lean().exec();
+        } catch (e) {}
+      }
+      res.json(updated || req.body);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -202,12 +275,15 @@ async function startServer() {
   // -------------------------------------------------------------
 
   const getSeoSettings = async () => {
-    if (!isMongoConnected()) return null;
     try {
-      const seo = await (SeoSettingsModel as any).findOne({ id: "seo" }).lean().exec();
-      if (seo) return seo as any;
+      const seo = await getFirestoreDocument("settings", "seo");
+      if (seo) return seo;
+      if (isMongoConnected()) {
+        const mSeo = await (SeoSettingsModel as any).findOne({ id: "seo" }).lean().exec();
+        if (mSeo) return mSeo as any;
+      }
     } catch (e) {
-      console.error("Error fetching SEO settings from MongoDB:", e);
+      console.error("Error fetching SEO settings:", e);
     }
     return null;
   };
@@ -229,63 +305,71 @@ async function startServer() {
   ];
 
   const getArticles = async () => {
-    if (isMongoConnected()) {
-      try {
-        const articles = await (ArticleModel as any).find().sort({ createdAt: -1 }).limit(300).lean().exec();
-        if (articles && articles.length > 0) {
-          return articles.map((a: any) => ({
+    try {
+      const articles = await getFirestoreCollection("articles");
+      if (articles && articles.length > 0) {
+        return articles
+          .filter((a: any) => a && a.id && !a.id.startsWith("fb-") && a.id !== "1" && a.id !== "2" && a.id !== "3")
+          .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      }
+      if (isMongoConnected()) {
+        const mArticles = await (ArticleModel as any).find().sort({ createdAt: -1 }).limit(300).lean().exec();
+        if (mArticles && mArticles.length > 0) {
+          return mArticles.map((a: any) => ({
             ...a,
             id: a._id.toString()
           }));
         }
-      } catch (e) {
-        console.error("Error fetching articles for XML:", e);
       }
+    } catch (e) {
+      console.error("Error fetching articles for SSR/XML:", e);
     }
     return [];
   };
 
   const getArticle = async (id: string) => {
-    if (isMongoConnected()) {
-      try {
-        const article = await (ArticleModel as any).findById(id).lean().exec();
-        if (article) {
+    try {
+      const doc = await getFirestoreDocument("articles", id);
+      if (doc) return doc;
+      if (isMongoConnected()) {
+        const mArticle = await (ArticleModel as any).findById(id).lean().exec();
+        if (mArticle) {
           return {
-            ...(article as any),
-            id: (article as any)._id.toString()
+            ...(mArticle as any),
+            id: (mArticle as any)._id.toString()
           };
         }
-      } catch (e) {
-        console.error("Error fetching single article for SEO:", e);
       }
+    } catch (e) {
+      console.error("Error fetching single article for SEO:", e);
     }
     return null;
   };
 
   const getCompanyPages = async () => {
-    if (isMongoConnected()) {
-      try {
-        const pages = await (CompanyPageModel as any).find().lean().exec();
-        if (pages && pages.length > 0) {
-          return pages as any[];
-        }
-      } catch (e) {
-        console.error("Error fetching company pages:", e);
+    try {
+      const pages = await getFirestoreCollection("companyPages");
+      if (pages && pages.length > 0) return pages;
+      if (isMongoConnected()) {
+        const mPages = await (CompanyPageModel as any).find().lean().exec();
+        if (mPages && mPages.length > 0) return mPages as any[];
       }
+    } catch (e) {
+      console.error("Error fetching company pages:", e);
     }
     return defaultCompanyPages;
   };
 
   const getCategories = async () => {
-    if (isMongoConnected()) {
-      try {
-        const categories = await (CategoryModel as any).find().lean().exec();
-        if (categories && categories.length > 0) {
-          return categories as any[];
-        }
-      } catch (e) {
-        console.error("Error fetching categories:", e);
+    try {
+      const categories = await getFirestoreCollection("categories");
+      if (categories && categories.length > 0) return categories;
+      if (isMongoConnected()) {
+        const mCategories = await (CategoryModel as any).find().lean().exec();
+        if (mCategories && mCategories.length > 0) return mCategories as any[];
       }
+    } catch (e) {
+      console.error("Error fetching categories:", e);
     }
     return defaultCategories;
   };

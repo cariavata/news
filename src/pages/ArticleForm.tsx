@@ -28,6 +28,9 @@ export default function ArticleForm() {
     cardNewsImages: [] as string[]
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   useEffect(() => {
     if (id) {
       const article = articles.find(a => a.id === id);
@@ -54,19 +57,28 @@ export default function ArticleForm() {
     }
   }, [id, articles, categories, searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (id) {
-      updateArticle(id, formData);
-    } else {
-      addArticle({ ...formData });
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      if (id) {
+        await updateArticle(id, formData);
+      } else {
+        await addArticle({ ...formData });
+      }
+      navigate('/admin');
+    } catch (err) {
+      console.error("Failed to save article:", err);
+      alert("기사 저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setIsSaving(false);
     }
-    navigate('/admin');
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setUploadingImage(true);
       try {
         const urls = await uploadImagesApi([file]);
         if (urls && urls.length > 0) {
@@ -76,8 +88,43 @@ export default function ArticleForm() {
         compressImage(file, 1200, 1200, (base64) => {
           setFormData(prev => ({ ...prev, imageUrl: base64 }));
         });
+      } finally {
+        setUploadingImage(false);
       }
     }
+  };
+
+  const handleDoctorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const urls = await uploadImagesApi([file]);
+        if (urls && urls.length > 0) {
+          setFormData(prev => ({ ...prev, doctorImage: urls[0] }));
+          return;
+        }
+      } catch (err) {}
+      compressImage(file, 500, 500, (base64) => {
+        setFormData(prev => ({ ...prev, doctorImage: base64 }));
+      });
+    }
+  };
+
+  const handleCardNewsImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      const urls = await uploadImagesApi(files);
+      if (urls && urls.length > 0) {
+        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...urls] }));
+        return;
+      }
+    } catch (err) {}
+    files.forEach(file => {
+      compressImage(file, 1080, 1080, (base64) => {
+        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, base64] }));
+      });
+    });
   };
 
   return (
@@ -182,14 +229,7 @@ export default function ArticleForm() {
                     <span className="text-slate-400 font-bold shrink-0">OR</span>
                     <label className="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
                       <span>사진 파일 업로드</span>
-                      <input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          compressImage(file, 500, 500, (base64) => {
-                            setFormData({ ...formData, doctorImage: base64 });
-                          });
-                        }
-                      }} />
+                      <input type="file" className="hidden" accept="image/*" onChange={handleDoctorImageUpload} />
                     </label>
                   </div>
                   {formData.doctorImage && (
@@ -223,9 +263,9 @@ export default function ArticleForm() {
                 placeholder="또는 이미지 URL을 입력하세요 (https://...)"
               />
               <span className="text-slate-400 font-bold shrink-0">OR</span>
-              <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
-                <span>내 컴퓨터에서 사진 추가</span>
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+              <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300 flex items-center gap-2">
+                <span>{uploadingImage ? '업로드 중...' : '내 컴퓨터에서 사진 추가'}</span>
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
               </label>
             </div>
             {formData.imageUrl && (
@@ -299,14 +339,7 @@ export default function ArticleForm() {
                 <label className="cursor-pointer border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-500 flex flex-col items-center justify-center rounded-md font-medium text-sm transition w-24 h-24 sm:w-32 sm:h-32">
                   <span className="text-2xl mb-1">+</span>
                   <span>사진 추가</span>
-                  <input type="file" className="hidden" accept="image/*" multiple onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    files.forEach(file => {
-                      compressImage(file, 1080, 1080, (base64) => {
-                        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, base64] }));
-                      });
-                    });
-                  }} />
+                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleCardNewsImagesUpload} />
                 </label>
               </div>
             </div>
@@ -366,8 +399,19 @@ export default function ArticleForm() {
            <Link to="/admin" className="px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-md hover:bg-slate-50 transition">
              취소
            </Link>
-           <button type="submit" className="px-8 py-3 bg-slate-900 text-white font-bold rounded-md hover:bg-slate-800 transition shadow-sm">
-             {id ? '수정 완료' : '기사 등록'}
+           <button 
+             type="submit" 
+             disabled={isSaving}
+             className="px-8 py-3 bg-slate-900 text-white font-bold rounded-md hover:bg-slate-800 disabled:bg-slate-400 transition shadow-sm flex items-center gap-2"
+           >
+             {isSaving ? (
+               <>
+                 <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                 <span>저장 중...</span>
+               </>
+             ) : (
+               id ? '수정 완료' : '기사 등록'
+             )}
            </button>
         </div>
       </form>
