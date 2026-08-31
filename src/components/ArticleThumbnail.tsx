@@ -21,17 +21,17 @@ const CATEGORY_THEMES: Record<string, {
 }> = {
   'checkup': {
     bgGradient: 'from-emerald-950 via-slate-900 to-teal-950 text-emerald-100',
-    borderColor: 'border-emerald-800/40',
-    badgeBg: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300',
+    borderColor: 'border-emerald-700/50',
+    badgeBg: 'bg-emerald-500/25 border-emerald-400/50 text-emerald-200',
     badgeText: '건강검진',
     iconColor: 'text-emerald-400',
     icon: ShieldCheck,
-    subtext: '정기 종합검진 가이드'
+    subtext: '정기 종합검진'
   },
   'womens-health': {
     bgGradient: 'from-rose-950 via-slate-900 to-pink-950 text-rose-100',
-    borderColor: 'border-rose-800/40',
-    badgeBg: 'bg-rose-500/20 border-rose-500/30 text-rose-300',
+    borderColor: 'border-rose-700/50',
+    badgeBg: 'bg-rose-500/25 border-rose-400/50 text-rose-200',
     badgeText: '여성건강',
     iconColor: 'text-rose-400',
     icon: Heart,
@@ -39,17 +39,17 @@ const CATEGORY_THEMES: Record<string, {
   },
   'spine-joint': {
     bgGradient: 'from-blue-950 via-slate-900 to-indigo-950 text-blue-100',
-    borderColor: 'border-blue-800/40',
-    badgeBg: 'bg-blue-500/20 border-blue-500/30 text-blue-300',
+    borderColor: 'border-blue-700/50',
+    badgeBg: 'bg-blue-500/25 border-blue-400/50 text-blue-200',
     badgeText: '척추관절',
     iconColor: 'text-blue-400',
     icon: Activity,
-    subtext: '바른 자세 & 관절 재활'
+    subtext: '자세 & 관절 재활'
   },
   'oriental-med': {
     bgGradient: 'from-amber-950 via-stone-900 to-yellow-950 text-amber-100',
-    borderColor: 'border-amber-800/40',
-    badgeBg: 'bg-amber-500/20 border-amber-500/30 text-amber-300',
+    borderColor: 'border-amber-700/50',
+    badgeBg: 'bg-amber-500/25 border-amber-400/50 text-amber-200',
     badgeText: '한의학',
     iconColor: 'text-amber-400',
     icon: Sparkles,
@@ -57,8 +57,8 @@ const CATEGORY_THEMES: Record<string, {
   },
   'opinion': {
     bgGradient: 'from-slate-900 via-stone-900 to-zinc-950 text-slate-100',
-    borderColor: 'border-slate-700/50',
-    badgeBg: 'bg-slate-700/50 border-slate-600 text-slate-200',
+    borderColor: 'border-slate-700/60',
+    badgeBg: 'bg-slate-700/70 border-slate-500 text-slate-100',
     badgeText: '오피니언',
     iconColor: 'text-slate-300',
     icon: Stethoscope,
@@ -66,54 +66,96 @@ const CATEGORY_THEMES: Record<string, {
   },
   'default': {
     bgGradient: 'from-slate-900 via-slate-800 to-slate-950 text-slate-100',
-    borderColor: 'border-slate-700/40',
-    badgeBg: 'bg-slate-700/40 border-slate-600 text-slate-300',
+    borderColor: 'border-slate-700/50',
+    badgeBg: 'bg-slate-700/70 border-slate-500 text-slate-100',
     badgeText: '의학 브리핑',
     iconColor: 'text-slate-400',
     icon: Newspaper,
-    subtext: '데일리펄스 헬스 인사이트'
+    subtext: '데일리펄스 인사이트'
   }
 };
 
-// Extract concise core medical topic from article title or tags
+/**
+ * Extracts concise, highly readable core medical topic for thumbnail display.
+ * Shows only essential subject and clean clinical focus without clutter.
+ */
 export function extractCoreTopic(article: Article): { primary: string; secondary?: string } {
   const title = (article.title || '').trim();
 
-  // Match known major medical topics
+  // Comprehensive medical topic mapping
   if (/위.*대장|내시경|용종/i.test(title)) {
     return { primary: '위·대장 내시경', secondary: '조기 용종 절제 가이드' };
   }
-  if (/간수치|지방간|AST|ALT|감마GTP/i.test(title)) {
+  if (/간수치|지방간|AST|ALT|감마GTP|r-GTP/i.test(title)) {
     return { primary: '간수치 & 지방간', secondary: 'AST·ALT 간세포 회복' };
   }
-  if (/혈당|당화혈색소|당뇨/i.test(title)) {
-    return { primary: '공복혈당 & 당뇨', secondary: '당뇨 전단계 극복 솔루션' };
+  if (/혈당|당화혈색소|HbA1c|당뇨/i.test(title)) {
+    return { primary: '공복혈당 & 당뇨', secondary: '당화혈색소 정상화 수칙' };
   }
-  if (/경동맥|뇌졸중|플라크|혈관/i.test(title)) {
+  if (/경동맥|뇌졸중|플라크|IMT/i.test(title)) {
     return { primary: '경동맥 초음파', secondary: '혈관 플라크 & 뇌졸중 예방' };
   }
-  if (/자궁경부|HPV|가다실/i.test(title)) {
+  if (/갑상선|K-TIRADS|결절|FNAC/i.test(title)) {
+    return { primary: '갑상선 결절', secondary: '초음파 판독 & 세포검사' };
+  }
+  if (/저선량|간유리|폐결절|폐암/i.test(title)) {
+    return { primary: '저선량 흉부 CT', secondary: '폐결절 & 간유리음영' };
+  }
+  if (/관상동맥|석회화|CACS|심근경색|심장/i.test(title)) {
+    return { primary: '관상동맥 석회화', secondary: '심장 CT & 심근경색 예방' };
+  }
+  if (/신장|eGFR|사구체|단백뇨|신부전|콩팥/i.test(title)) {
+    return { primary: '신장 기능 & eGFR', secondary: '단백뇨 & 만성신부전 관리' };
+  }
+  if (/자궁경부|HPV|가다실|이형성/i.test(title)) {
     return { primary: '자궁경부암 & HPV', secondary: '고위험군 백신 가이드' };
   }
-  if (/다낭성|PCOS|난소|생리불순/i.test(title)) {
+  if (/다낭성|PCOS|난소|인슐린.*저항/i.test(title)) {
     return { primary: '다낭성 난소 증후군', secondary: 'PCOS 호르몬 밸런스' };
   }
-  if (/허리디스크|척추관협착|추간판|좌골신경/i.test(title)) {
-    return { primary: '허리디스크 & 협착증', secondary: '비수술 신경재활 치료' };
+  if (/자궁근종|자궁선근증|하이푸|HIFU/i.test(title)) {
+    return { primary: '자궁근종 & 선근증', secondary: '비수술 하이푸 보존 치료' };
   }
-  if (/무릎|관절염|콘쥬란|연골/i.test(title)) {
-    return { primary: '무릎 퇴행성 관절염', secondary: '연골 보호 주사 치료' };
+  if (/자궁내막증|초콜릿낭종|골반통/i.test(title)) {
+    return { primary: '자궁내막증', secondary: '골반통 & 유착 방지 관리' };
   }
-  if (/사상체질|공진단|경옥고|보약/i.test(title)) {
-    return { primary: '사상체질 & 맞춤보약', secondary: '태양·소양·태음·소음' };
+  if (/완경|폐경|갱년기|HRT|안면홍조/i.test(title)) {
+    return { primary: '갱년기 & 완경', secondary: '호르몬 대체요법(HRT)' };
   }
-  if (/담적|소화불량|역류성/i.test(title)) {
-    return { primary: '만성 소화불량 & 담적', secondary: '위장 복진 & 온열 치료' };
+  if (/허리디스크|척추관협착|추간판|좌골신경|신경차단술/i.test(title)) {
+    return { primary: '허리디스크 & 협착증', secondary: '비수술 신경차단술 치료' };
+  }
+  if (/오십견|동결견|유착성.*관절낭|어깨통증/i.test(title)) {
+    return { primary: '오십견 (동결견)', secondary: '초음파 수압확장술 재활' };
+  }
+  if (/목디스크|경추|일자목|거북목|팔.*저림/i.test(title)) {
+    return { primary: '경추 목디스크', secondary: 'C자 만곡 회복 도수치료' };
+  }
+  if (/무릎.*관절염|퇴행성.*관절|콘쥬란|연골/i.test(title)) {
+    return { primary: '퇴행성 무릎관절염', secondary: '콘쥬란 PN 연골주사' };
+  }
+  if (/족저근막|체외충격파|ESWT|발뒤꿈치/i.test(title)) {
+    return { primary: '족저근막염', secondary: '체외충격파(ESWT) 재생' };
+  }
+  if (/담적|소화불량|역류성.*식도|복진/i.test(title)) {
+    return { primary: '만성 소화불량 & 담적', secondary: '위장 9구역 복진 & 온열뜸' };
+  }
+  if (/화병|자율신경|불면증|상열감/i.test(title)) {
+    return { primary: '화병 & 자율신경', secondary: '교감신경 이완 한방 처방' };
+  }
+  if (/비염|축농증|배농|하비갑개/i.test(title)) {
+    return { primary: '알레르기 비염', secondary: '비강 점막 배농 & 면역 한약' };
+  }
+  if (/만성.*피로|부신|공진단|경옥고|보약/i.test(title)) {
+    return { primary: '만성피로 & 공진단', secondary: '사상체질 맞춤 보약 처방' };
+  }
+  if (/추나|골반.*교정|척추.*교정|도수/i.test(title)) {
+    return { primary: '척추 추나요법', secondary: '체형 불균형 건강보험 교정' };
   }
 
   // Fallback using article tags if available
   if (Array.isArray(article.tags) && article.tags.length > 0) {
-    const validTags = article.tags.filter(t => t && t.length < 12);
+    const validTags = article.tags.filter(t => t && t.length < 10);
     if (validTags.length >= 2) {
       return { primary: `${validTags[0]} · ${validTags[1]}`, secondary: validTags[2] || undefined };
     } else if (validTags.length === 1) {
@@ -121,18 +163,17 @@ export function extractCoreTopic(article: Article): { primary: string; secondary
     }
   }
 
-  // Generic fallback: clean title of noise suffixes
+  // Smart fallback: extract first 2 meaningful nouns
   let cleaned = title
-    .replace(/^\[.*?\]\s*/, '')
-    .replace(/(최적 주기와|조기|원인과|탈출 솔루션|극복 가이드|예방법|최신 가이드|호르몬 밸런스|감별 진단과|비수술 재활|단계별 맞춤 치료와|정밀 진단과|식이요법|온열 뜸 치료|알아보기|완벽 정리|가이드|솔루션|방법)$/g, '')
+    .replace(/[\[\]\(\)]/g, '')
+    .replace(/(최적 주기와|조기|원인과|탈출 솔루션|극복 가이드|예방법|최신 가이드|호르몬 밸런스|감별 진단과|비수술 재활|단계별 맞춤 치료와|정밀 진단과|식이요법|온열 뜸 치료|알아보기|완벽 정리|가이드|솔루션|방법|치료법|로드맵)$/g, '')
     .trim();
 
-  if (cleaned.length > 14) {
-    const parts = cleaned.split(/[\s,·/:]+/);
-    cleaned = parts.slice(0, 2).join(' ');
-  }
+  const words = cleaned.split(/[\s,·/:]+/).filter(w => w.length >= 2);
+  const primary = words.slice(0, 2).join(' ') || title.slice(0, 10);
+  const secondary = words.length > 2 ? words.slice(2, 4).join(' ') : undefined;
 
-  return { primary: cleaned || title.slice(0, 14) };
+  return { primary, secondary };
 }
 
 export default function ArticleThumbnail({
@@ -166,7 +207,7 @@ export default function ArticleThumbnail({
     );
   }
 
-  // Modern, high-performance Korean typographic editorial thumbnail (0 bytes storage in DB)
+  // Modern, high-performance Korean typographic editorial thumbnail
   const catKey = article.categoryId || (article as any).category || 'default';
   const theme = CATEGORY_THEMES[catKey] || CATEGORY_THEMES['default'];
   const IconComponent = theme.icon;
@@ -180,12 +221,17 @@ export default function ArticleThumbnail({
     ? article.createdAt.slice(0, 10).replace(/-/g, '.')
     : '';
 
-  // Minimal tiny square thumbnail (e.g., mobile list items without badge)
+  // Minimal small square thumbnail (e.g., mobile list items without badge)
   if (!showBadge) {
     return (
       <div className={`relative overflow-hidden bg-gradient-to-br ${theme.bgGradient} border ${theme.borderColor} flex flex-col items-center justify-center p-2 text-center select-none ${className}`}>
-        <IconComponent className="w-4 h-4 text-emerald-400 mb-1 shrink-0" />
-        <span className="text-[11px] font-serif font-bold text-white leading-tight line-clamp-2 break-keep">
+        <div className="flex items-center gap-1 mb-1">
+          <IconComponent className={`w-3.5 h-3.5 ${theme.iconColor} shrink-0`} />
+          <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 tracking-tight">
+            {displayCategory}
+          </span>
+        </div>
+        <span className="text-xs sm:text-sm font-serif font-black text-white leading-tight line-clamp-2 break-keep px-0.5">
           {coreTopic.primary}
         </span>
       </div>
@@ -195,53 +241,55 @@ export default function ArticleThumbnail({
   return (
     <div className={`relative overflow-hidden bg-gradient-to-br ${theme.bgGradient} border ${theme.borderColor} flex flex-col justify-between select-none transition-all duration-300 group-hover:border-opacity-100 ${
       isVideo 
-        ? 'aspect-video sm:aspect-[16/10] p-3 sm:p-4' 
-        : 'aspect-square p-4 sm:p-5'
+        ? 'aspect-video sm:aspect-[16/10] p-4 sm:p-5' 
+        : 'aspect-square p-5 sm:p-6'
     } ${className}`}>
       
       {/* Decorative subtle background elements */}
-      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/[0.03] blur-xl pointer-events-none" />
-      <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/[0.02] blur-2xl pointer-events-none" />
+      <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/[0.04] blur-xl pointer-events-none" />
+      <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-white/[0.03] blur-2xl pointer-events-none" />
 
       {/* Top Bar: Category pill + Medical Icon + Date */}
       <div className="flex items-center justify-between z-10 w-full shrink-0">
-        <div className="flex items-center gap-1.5">
-          <span className={`inline-flex items-center gap-1 rounded-full font-bold tracking-wider border ${
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 rounded-lg font-extrabold tracking-wider border shadow-sm ${
             isVideo 
-              ? 'px-2 py-0.5 text-[10px]' 
-              : 'px-2.5 py-1 text-[11px]'
+              ? 'px-2.5 py-1 text-xs' 
+              : 'px-3 py-1.5 text-xs sm:text-sm'
           } ${theme.badgeBg}`}>
-            <IconComponent className={isVideo ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+            <IconComponent className={isVideo ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
             {displayCategory}
           </span>
         </div>
         {dateFormatted && (
-          <span className={`font-mono text-slate-400 font-medium tracking-tight ${
-            isVideo ? 'text-[9px] sm:text-[10px]' : 'text-[10px] sm:text-xs'
+          <span className={`font-mono text-slate-300 font-bold tracking-tight ${
+            isVideo ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm md:text-base'
           }`}>
             {dateFormatted}
           </span>
         )}
       </div>
 
-      {/* Center: Clean & Prominent Core Topic Display */}
-      <div className={`my-auto z-10 flex flex-col justify-center ${isVideo ? 'py-1 gap-1' : 'py-2 gap-1.5'}`}>
-        <div className={`flex items-center gap-1.5 font-mono font-semibold uppercase tracking-wider text-slate-400/90 ${
-          isVideo ? 'text-[9px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'
+      {/* Center: Large, Centered & High-Impact Core Topic Display */}
+      <div className={`my-auto z-10 flex flex-col items-center justify-center text-center ${isVideo ? 'py-2 gap-1.5' : 'py-4 gap-2.5 sm:gap-3'}`}>
+        <div className={`inline-flex items-center justify-center gap-1.5 font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30 ${
+          isVideo ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
         }`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
           <span>핵심 브리핑</span>
         </div>
-        <h3 className={`font-serif font-black text-white tracking-tight group-hover:text-emerald-300 transition-colors break-keep ${
+        <h3 className={`font-serif font-black text-white tracking-tight group-hover:text-emerald-300 transition-colors break-keep drop-shadow-md px-2 ${
           isVideo 
-            ? 'text-[15px] sm:text-[17px] md:text-lg leading-snug line-clamp-1' 
-            : 'text-lg sm:text-xl md:text-2xl leading-tight'
+            ? 'text-2xl sm:text-3xl md:text-4xl leading-snug line-clamp-1' 
+            : 'text-3xl sm:text-4xl md:text-5xl leading-tight line-clamp-2'
         }`}>
           {coreTopic.primary}
         </h3>
         {coreTopic.secondary && (
-          <p className={`font-sans text-slate-300/90 font-medium leading-normal break-keep line-clamp-1 ${
-            isVideo ? 'text-[10px] sm:text-[11px]' : 'text-xs sm:text-sm'
+          <p className={`font-sans text-slate-200 font-semibold leading-normal break-keep px-3 ${
+            isVideo 
+              ? 'text-sm sm:text-base line-clamp-1' 
+              : 'text-base sm:text-lg md:text-xl line-clamp-2'
           }`}>
             {coreTopic.secondary}
           </p>
@@ -249,13 +297,13 @@ export default function ArticleThumbnail({
       </div>
 
       {/* Bottom Bar: Brand & Subtext */}
-      <div className={`flex items-center justify-between border-t border-white/10 z-10 text-slate-400 shrink-0 ${
-        isVideo ? 'pt-1.5 text-[9px] sm:text-[10px]' : 'pt-2.5 text-[10px] sm:text-[11px]'
+      <div className={`flex items-center justify-between border-t border-white/15 z-10 text-slate-300 shrink-0 ${
+        isVideo ? 'pt-2 text-xs' : 'pt-3 text-xs sm:text-sm'
       }`}>
-        <span className="font-sans font-semibold tracking-wider text-slate-300 flex items-center gap-1">
+        <span className="font-sans font-extrabold tracking-wider text-white/90 flex items-center gap-1">
           DAILY PULSE
         </span>
-        <span className="font-mono text-slate-400 text-[9px] sm:text-[10px] tracking-tight">
+        <span className="font-mono text-slate-300 text-xs sm:text-sm font-semibold tracking-tight">
           {theme.subtext}
         </span>
       </div>

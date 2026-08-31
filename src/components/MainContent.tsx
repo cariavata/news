@@ -286,7 +286,7 @@ export default function MainContent() {
                       categoryName={category.name} 
                       aspectRatio="square" 
                       showBadge={false} 
-                      className="w-[84px] h-[84px] shrink-0 rounded-lg p-2 text-[10px]" 
+                      className="w-[90px] h-[90px] shrink-0 rounded-xl" 
                     />
                   </Link>
                 ))}
