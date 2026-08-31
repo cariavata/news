@@ -241,7 +241,7 @@ export default function ArticleThumbnail({
   return (
     <div className={`relative overflow-hidden bg-gradient-to-br ${theme.bgGradient} border ${theme.borderColor} flex flex-col justify-between select-none transition-all duration-300 group-hover:border-opacity-100 ${
       isVideo 
-        ? 'aspect-video sm:aspect-[16/10] p-4 sm:p-5' 
+        ? 'aspect-[16/10] sm:aspect-[16/9] md:aspect-[16/10] p-3.5 sm:p-4 md:p-3.5 lg:p-4' 
         : 'aspect-square p-5 sm:p-6'
     } ${className}`}>
       
@@ -251,19 +251,19 @@ export default function ArticleThumbnail({
 
       {/* Top Bar: Category pill + Medical Icon + Date */}
       <div className="flex items-center justify-between z-10 w-full shrink-0">
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center gap-1.5 rounded-lg font-extrabold tracking-wider border shadow-sm ${
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg font-extrabold tracking-wider border shadow-sm ${
             isVideo 
-              ? 'px-2.5 py-1 text-xs' 
+              ? 'px-2 py-0.5 text-[10px] sm:text-xs md:text-[10px] lg:text-xs' 
               : 'px-3 py-1.5 text-xs sm:text-sm'
           } ${theme.badgeBg}`}>
-            <IconComponent className={isVideo ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+            <IconComponent className={isVideo ? 'w-3 h-3 md:w-3 md:h-3 lg:w-3.5 lg:h-3.5' : 'w-4 h-4'} />
             {displayCategory}
           </span>
         </div>
         {dateFormatted && (
           <span className={`font-mono text-slate-300 font-bold tracking-tight ${
-            isVideo ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm md:text-base'
+            isVideo ? 'text-[10px] sm:text-xs md:text-[10px] lg:text-xs' : 'text-xs sm:text-sm md:text-base'
           }`}>
             {dateFormatted}
           </span>
@@ -271,24 +271,28 @@ export default function ArticleThumbnail({
       </div>
 
       {/* Center: Large, Centered & High-Impact Core Topic Display */}
-      <div className={`my-auto z-10 flex flex-col items-center justify-center text-center ${isVideo ? 'py-2 gap-1.5' : 'py-4 gap-2.5 sm:gap-3'}`}>
-        <div className={`inline-flex items-center justify-center gap-1.5 font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30 ${
-          isVideo ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
+      <div className={`my-auto z-10 flex flex-col items-center justify-center text-center ${
+        isVideo 
+          ? 'py-1 sm:py-2 md:py-1 lg:py-2 gap-1 sm:gap-1.5 md:gap-1 lg:gap-1.5' 
+          : 'py-4 gap-2.5 sm:gap-3'
+      }`}>
+        <div className={`inline-flex items-center justify-center gap-1 sm:gap-1.5 font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 rounded-full border border-emerald-500/30 ${
+          isVideo ? 'text-[9px] sm:text-xs md:text-[9px] lg:text-xs px-2 py-0.5' : 'text-xs sm:text-sm px-2.5 py-0.5'
         }`}>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
           <span>핵심 브리핑</span>
         </div>
-        <h3 className={`font-serif font-black text-white tracking-tight group-hover:text-emerald-300 transition-colors break-keep drop-shadow-md px-2 ${
+        <h3 className={`font-serif font-black text-white tracking-tight group-hover:text-emerald-300 transition-colors break-keep drop-shadow-md px-1 ${
           isVideo 
-            ? 'text-2xl sm:text-3xl md:text-4xl leading-snug line-clamp-1' 
+            ? 'text-2xl sm:text-3xl md:text-base lg:text-lg xl:text-xl leading-tight line-clamp-2' 
             : 'text-3xl sm:text-4xl md:text-5xl leading-tight line-clamp-2'
         }`}>
           {coreTopic.primary}
         </h3>
         {coreTopic.secondary && (
-          <p className={`font-sans text-slate-200 font-semibold leading-normal break-keep px-3 ${
+          <p className={`font-sans text-slate-200 font-semibold leading-tight break-keep px-1 ${
             isVideo 
-              ? 'text-sm sm:text-base line-clamp-1' 
+              ? 'text-xs sm:text-sm md:text-[11px] lg:text-xs line-clamp-1' 
               : 'text-base sm:text-lg md:text-xl line-clamp-2'
           }`}>
             {coreTopic.secondary}
@@ -298,12 +302,12 @@ export default function ArticleThumbnail({
 
       {/* Bottom Bar: Brand & Subtext */}
       <div className={`flex items-center justify-between border-t border-white/15 z-10 text-slate-300 shrink-0 ${
-        isVideo ? 'pt-2 text-xs' : 'pt-3 text-xs sm:text-sm'
+        isVideo ? 'pt-1 sm:pt-1.5 md:pt-1 lg:pt-1.5 text-[9px] sm:text-xs md:text-[9px] lg:text-[10px]' : 'pt-3 text-xs sm:text-sm'
       }`}>
         <span className="font-sans font-extrabold tracking-wider text-white/90 flex items-center gap-1">
           DAILY PULSE
         </span>
-        <span className="font-mono text-slate-300 text-xs sm:text-sm font-semibold tracking-tight">
+        <span className="font-mono text-slate-300 font-semibold tracking-tight">
           {theme.subtext}
         </span>
       </div>

@@ -70,7 +70,7 @@ export default function SearchResults() {
                       {article.excerpt}
                     </p>
                     <div className="mt-auto flex flex-col gap-3 pt-4">
-                      {(article.doctorName || article.hospitalName) && (
+                      {article.categoryId === 'opinion' && article.doctorName && (
                         <div className="flex items-center gap-3 w-fit">
                           {article.doctorImage ? (
                             <img src={article.doctorImage} alt={article.doctorName || '의사 사진'} className="hidden sm:block w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm" />

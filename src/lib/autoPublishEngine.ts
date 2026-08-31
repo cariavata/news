@@ -296,10 +296,7 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
     isBreaking: safeDayIndex % 11 === 0,
     views,
     likes,
-    tags: topic.tags,
-    doctorName: '김현수 대표원장',
-    hospitalName: '데일리펄스 통합의학센터',
-    doctorSpecialty: categoryConfig.name + ' 전문의'
+    tags: topic.tags
   };
 }
 
