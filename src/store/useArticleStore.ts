@@ -3,7 +3,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage, Inquiry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
-import { doc, setDoc, deleteDoc, getDocs, collection, getDoc } from 'firebase/firestore';
+import { getPublishedAutoArticles, getAutoArticleById } from '../lib/autoPublishEngine';
+import { doc, setDoc, deleteDoc, getDocs, collection, getDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
   createArticleApi,
@@ -52,6 +53,29 @@ export const sanitizeArticles = (articles: any[]): Article[] => {
   return articles.filter(a => a && typeof a.id === 'string' && a.title) as Article[];
 };
 
+export const mergeWithAutoArticles = (rawArticles: Article[]): Article[] => {
+  const autoArticles = getPublishedAutoArticles(180);
+  const articleMap = new Map<string, Article>();
+
+  // 1. Add auto-published articles (1 unique article per day up to today)
+  autoArticles.forEach(a => {
+    articleMap.set(a.id, a);
+  });
+
+  // 2. User-authored articles override or blend in (skip stale stored auto- articles to use fresh engine)
+  if (Array.isArray(rawArticles)) {
+    rawArticles.forEach(a => {
+      if (a && a.id && a.title && !a.id.startsWith('auto-')) {
+        articleMap.set(a.id, a);
+      }
+    });
+  }
+
+  const merged = Array.from(articleMap.values());
+  merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  return merged;
+};
+
 export const ensureFallbackContent = () => {
   const state = useAppStore.getState();
   let articlesToSet = sanitizeArticles(state.articles);
@@ -68,8 +92,10 @@ export const ensureFallbackContent = () => {
     } catch (e) {}
   }
 
+  const mergedArticles = mergeWithAutoArticles(articlesToSet || []);
+
   useAppStore.setState({
-    articles: articlesToSet || [],
+    articles: mergedArticles,
     categories: state.categories && state.categories.length > 0 ? state.categories : fallbackCategories,
     companyPages: state.companyPages && state.companyPages.length > 0 ? state.companyPages : fallbackCompanyPages,
     isFirebaseSettingsLoaded: true,
@@ -128,60 +154,43 @@ interface AppState {
   resetAnalytics: () => void;
 }
 
-export const generateSeedAnalyticsData = (): AnalyticsData => {
-  const dailyViews: Record<string, number> = {};
-  const dailyKeywords: Record<string, Record<string, number>> = {};
-  const dailyDevices: Record<string, Record<string, number>> = {};
-  const dailyReferrers: Record<string, Record<string, number>> = {};
-  const keywords: Record<string, number> = {
-    '건강검진 항목': 184,
-    '척추관절 디스크': 142,
-    '여성건강 영양제': 118,
-    '한의학 침치료': 95,
-    '고혈압 수치 기준': 88,
-    '당뇨 예방 음식': 76,
-    '거북목 스트레칭': 64,
-  };
-  const devices: Record<string, number> = { 'Mo': 3820, 'PC': 2410, 'Tab': 450 };
+export const getDeviceType = (): 'Mo' | 'PC' | 'Tab' => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'PC';
+  const ua = navigator.userAgent || '';
+  if (/iPad|Tablet|(Android(?!.*Mobile))/i.test(ua)) return 'Tab';
+  if (/Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return 'Mo';
+  return 'PC';
+};
 
-  const today = new Date();
-  for (let i = 365; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    
-    const dayOfWeek = d.getDay();
-    const base = (dayOfWeek === 0 || dayOfWeek === 6) ? 140 : 220;
-    const pseudoRandom = Math.floor(Math.sin(i * 12.34) * 45) + Math.floor(Math.cos(i * 5.67) * 30);
-    const count = Math.max(85, base + pseudoRandom);
-    
-    dailyViews[dateStr] = count;
-    dailyDevices[dateStr] = {
-      'Mo': Math.floor(count * 0.62),
-      'PC': Math.floor(count * 0.33),
-      'Tab': Math.floor(count * 0.05)
-    };
-    dailyReferrers[dateStr] = {
-      'naver.com': Math.floor(count * 0.48),
-      'google.com': Math.floor(count * 0.34),
-      'daum.net': Math.floor(count * 0.12),
-      'direct': Math.floor(count * 0.06)
-    };
-    dailyKeywords[dateStr] = {
-      '건강검진': Math.floor(count * 0.15),
-      '영양제': Math.floor(count * 0.12),
-      '디스크': Math.floor(count * 0.10),
-      '한의원': Math.floor(count * 0.08)
-    };
+export const getReferrerDomain = (): string => {
+  if (typeof document === 'undefined' || !document.referrer) return 'direct';
+  try {
+    const url = new URL(document.referrer);
+    const host = url.hostname.toLowerCase();
+    if (host.includes('naver.com')) return 'naver.com';
+    if (host.includes('google.')) return 'google.com';
+    if (host.includes('daum.net')) return 'daum.net';
+    if (host.includes('kakao.com')) return 'kakao.com';
+    if (host.includes('instagram.com')) return 'instagram.com';
+    if (host.includes('facebook.com')) return 'facebook.com';
+    if (host.includes('youtube.com')) return 'youtube.com';
+    if (host.includes('the-dailypulse.netlify.app') || host.includes('localhost') || host.includes('run.app')) {
+      return 'internal';
+    }
+    return host;
+  } catch {
+    return 'direct';
   }
+};
 
+export const getInitialAnalyticsData = (): AnalyticsData => {
   return {
-    dailyViews,
-    dailyKeywords,
-    dailyDevices,
-    dailyReferrers,
-    keywords,
-    devices
+    dailyViews: {},
+    dailyKeywords: {},
+    dailyDevices: {},
+    dailyReferrers: {},
+    keywords: {},
+    devices: {}
   };
 };
 
@@ -235,20 +244,33 @@ export const useAppStore = create<AppState>()(
           if (!snapshot.empty) {
             const raw = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             const fetched = sanitizeArticles(raw);
-            fetched.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-            set({ articles: fetched, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            const merged = mergeWithAutoArticles(fetched);
+            set({ articles: merged, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           } else {
-            set({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            const merged = mergeWithAutoArticles([]);
+            set({ articles: merged, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         } catch (error) {
           console.warn("fetchInitialArticles Firestore error:", error);
-          set({ hasFetchedInitialArticles: true });
+          const current = useAppStore.getState().articles;
+          const merged = mergeWithAutoArticles(current);
+          set({ articles: merged, hasFetchedInitialArticles: true });
         }
       },
       fetchArticlesByCategory: async (_categoryId: string) => {},
       fetchArticleById: async (id: string) => {
         const state = useAppStore.getState();
         if (state.articles.find(a => a.id === id)) return;
+
+        // Check if it's an auto-published article
+        if (id.startsWith('auto-')) {
+          const autoArt = getAutoArticleById(id);
+          if (autoArt) {
+            set((s) => ({ articles: [autoArt, ...s.articles.filter(a => a.id !== id)] }));
+            return;
+          }
+        }
+
         try {
           const docSnap = await getDoc(doc(db, 'articles', id));
           if (docSnap.exists()) {
@@ -494,29 +516,116 @@ export const useAppStore = create<AppState>()(
       lastFetchTime: 0,
       setFirebaseSettingsLoaded: (loaded) => set({ isFirebaseSettingsLoaded: loaded }),
 
-      analytics: generateSeedAnalyticsData(),
+      analytics: getInitialAnalyticsData(),
       globalSearchKeywords: [],
       setGlobalSearchKeywords: (keywords) => set({ globalSearchKeywords: keywords }),
-      trackPageView: () => {
+      trackPageView: async () => {
         const todayStr = new Date().toISOString().split('T')[0];
+        const device = getDeviceType();
+        const referrer = getReferrerDomain();
+
+        // Update local memory state immediately
         set((state) => {
-          const dailyViews = { ...state.analytics.dailyViews };
+          const dailyViews = { ...(state.analytics?.dailyViews || {}) };
           dailyViews[todayStr] = (dailyViews[todayStr] || 0) + 1;
-          return { analytics: { ...state.analytics, dailyViews } };
+
+          const dailyDevices = { ...(state.analytics?.dailyDevices || {}) };
+          const dayDev = { ...(dailyDevices[todayStr] || {}) };
+          dayDev[device] = (dayDev[device] || 0) + 1;
+          dailyDevices[todayStr] = dayDev;
+
+          const devices = { ...(state.analytics?.devices || {}) };
+          devices[device] = (devices[device] || 0) + 1;
+
+          const dailyReferrers = { ...(state.analytics?.dailyReferrers || {}) };
+          if (referrer !== 'internal') {
+            const dayRef = { ...(dailyReferrers[todayStr] || {}) };
+            dayRef[referrer] = (dayRef[referrer] || 0) + 1;
+            dailyReferrers[todayStr] = dayRef;
+          }
+
+          return {
+            analytics: {
+              dailyViews,
+              dailyKeywords: state.analytics?.dailyKeywords || {},
+              dailyDevices,
+              dailyReferrers,
+              keywords: state.analytics?.keywords || {},
+              devices
+            }
+          };
         });
+
+        // Persist real-time visitor event to Firestore database
+        try {
+          const safeRefKey = referrer !== 'internal' ? referrer.replace(/[\.\#\$\[\]\/]/g, '_') : null;
+          const updatePayload: any = {
+            [`dailyViews.${todayStr}`]: increment(1),
+            [`dailyDevices.${todayStr}.${device}`]: increment(1),
+            [`devices.${device}`]: increment(1),
+            lastVisitedAt: new Date().toISOString()
+          };
+          if (safeRefKey) {
+            updatePayload[`dailyReferrers.${todayStr}.${safeRefKey}`] = increment(1);
+          }
+          await setDoc(doc(db, 'analytics', 'summary'), updatePayload, { merge: true });
+        } catch (e) {
+          // Silent catch for offline or restricted Firestore
+        }
       },
-      trackSearch: (keyword) => {
+      trackSearch: async (keyword) => {
         if (!keyword.trim()) return;
         const kw = keyword.trim();
+        const todayStr = new Date().toISOString().split('T')[0];
+        const safeKwKey = kw.replace(/[\.\#\$\[\]\/]/g, '_');
+
         set((state) => {
-          const keywords = { ...state.analytics.keywords };
+          const keywords = { ...(state.analytics?.keywords || {}) };
           keywords[kw] = (keywords[kw] || 0) + 1;
-          return { analytics: { ...state.analytics, keywords } };
+
+          const dailyKeywords = { ...(state.analytics?.dailyKeywords || {}) };
+          const dayKw = { ...(dailyKeywords[todayStr] || {}) };
+          dayKw[kw] = (dayKw[kw] || 0) + 1;
+          dailyKeywords[todayStr] = dayKw;
+
+          return {
+            analytics: {
+              ...state.analytics,
+              keywords,
+              dailyKeywords
+            }
+          };
         });
+
+        try {
+          await setDoc(doc(db, 'analytics', 'summary'), {
+            [`keywords.${safeKwKey}`]: increment(1),
+            [`dailyKeywords.${todayStr}.${safeKwKey}`]: increment(1),
+            lastSearchedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (e) {}
       },
-      resetAnalytics: () => {
-        const emptyAnalytics = { dailyViews: {}, dailyKeywords: {}, dailyDevices: {}, dailyReferrers: {}, keywords: {}, devices: {} };
+      resetAnalytics: async () => {
+        const emptyAnalytics: AnalyticsData = {
+          dailyViews: {},
+          dailyKeywords: {},
+          dailyDevices: {},
+          dailyReferrers: {},
+          keywords: {},
+          devices: {}
+        };
         set({ analytics: emptyAnalytics });
+        try {
+          await setDoc(doc(db, 'analytics', 'summary'), {
+            dailyViews: {},
+            dailyKeywords: {},
+            dailyDevices: {},
+            dailyReferrers: {},
+            keywords: {},
+            devices: {},
+            resetAt: new Date().toISOString()
+          });
+        } catch (e) {}
       }
     }),
     {
@@ -549,12 +658,17 @@ export const useAppStore = create<AppState>()(
         companyPages: state.companyPages,
         seoSettings: state.seoSettings,
         inquiries: state.inquiries,
+        analytics: state.analytics,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.articles = sanitizeArticles(state.articles || []);
           state.hasFetchedInitialArticles = true;
           state.isFirebaseSettingsLoaded = true;
+          // Clear any remaining legacy seed/mock data (detected by > 100 entries or mock keywords)
+          if (state.analytics?.dailyViews && Object.keys(state.analytics.dailyViews).length > 60) {
+            state.analytics = getInitialAnalyticsData();
+          }
         }
       }
     }

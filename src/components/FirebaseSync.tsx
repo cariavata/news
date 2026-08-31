@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { collection, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useAppStore } from '../store/useArticleStore';
+import { useAppStore, mergeWithAutoArticles } from '../store/useArticleStore';
 import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
 
 enum OperationType {
@@ -89,11 +89,11 @@ export default function FirebaseSync() {
           if (!snapshot.empty) {
             const raw = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
             const fetchedArticles = sanitizeArticles(raw);
-            fetchedArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-            useAppStore.setState({ articles: fetchedArticles, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            const merged = mergeWithAutoArticles(fetchedArticles);
+            useAppStore.setState({ articles: merged, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
             try {
               localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
-                articles: fetchedArticles,
+                articles: merged,
                 categories: useAppStore.getState().categories,
                 companyPages: useAppStore.getState().companyPages,
                 adBanners: useAppStore.getState().adBanners,
@@ -101,7 +101,8 @@ export default function FirebaseSync() {
               }));
             } catch (e) {}
           } else {
-            useAppStore.setState({ hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
+            const merged = mergeWithAutoArticles([]);
+            useAppStore.setState({ articles: merged, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         },
         (error) => {
@@ -110,7 +111,8 @@ export default function FirebaseSync() {
       );
       unsubscribes.push(unsubArticles);
     } catch (e) {
-      useAppStore.setState({ hasFetchedInitialArticles: true });
+      const merged = mergeWithAutoArticles([]);
+      useAppStore.setState({ articles: merged, hasFetchedInitialArticles: true });
     }
 
     // 2. Real-time Categories Listener
@@ -247,6 +249,45 @@ export default function FirebaseSync() {
         }
       );
       unsubscribes.push(unsubInquiries);
+    } catch (e) {}
+
+    // 8. Real-time Analytics Statistics Listener (Cross-client Real Visitor Counts)
+    try {
+      const unsubAnalytics = onSnapshot(
+        doc(db, 'analytics', 'summary'),
+        (analyticsSnap) => {
+          if (analyticsSnap.exists()) {
+            const data = analyticsSnap.data() as any;
+            
+            // Clean up dot replacements in referrers and keywords
+            const restoredReferrers: Record<string, Record<string, number>> = {};
+            if (data.dailyReferrers) {
+              for (const [dateKey, refs] of Object.entries(data.dailyReferrers as Record<string, Record<string, number>>)) {
+                restoredReferrers[dateKey] = {};
+                for (const [rKey, count] of Object.entries(refs || {})) {
+                  const origKey = rKey.replace(/_/g, '.');
+                  restoredReferrers[dateKey][origKey] = count;
+                }
+              }
+            }
+
+            useAppStore.setState(state => ({
+              analytics: {
+                dailyViews: data.dailyViews || {},
+                dailyKeywords: data.dailyKeywords || {},
+                dailyDevices: data.dailyDevices || {},
+                dailyReferrers: Object.keys(restoredReferrers).length > 0 ? restoredReferrers : (data.dailyReferrers || {}),
+                keywords: data.keywords || {},
+                devices: data.devices || {}
+              }
+            }));
+          }
+        },
+        (error) => {
+          // Silent catch for analytics sync
+        }
+      );
+      unsubscribes.push(unsubAnalytics);
     } catch (e) {}
 
     // Cleanup all subscriptions when component unmounts

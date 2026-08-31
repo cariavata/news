@@ -68,4 +68,5 @@ export interface Article {
   hospitalName?: string; // Opt
   cardNewsImages?: string[]; // Array of image URLs for card news. Order matters.
   likes?: number; // Likes for card news
+  tags?: string[];
 }

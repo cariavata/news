@@ -170,11 +170,17 @@ export default function AdminAnalytics() {
       {/* Top Header & Range Selection */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-lg shadow-sm border border-slate-200">
         <div>
-          <h1 className="text-xl font-bold font-sans text-slate-800 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-slate-900" />
-            방문자 통계 분석
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">사이트의 일간·주간·월간·년간 트래픽 흐름과 유입 데이터를 분석합니다.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold font-sans text-slate-800 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-slate-900" />
+              방문자 통계 분석
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              실시간 실제 방문 통계
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">실제 독자 접속 시 브라우저·기기 환경 및 유입 경로를 실시간으로 자동 집계합니다.</p>
         </div>
         <div className="flex gap-3 items-center flex-wrap">
           <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
@@ -192,7 +198,7 @@ export default function AdminAnalytics() {
             onClick={handleReset}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition text-xs sm:text-sm font-bold border border-red-200"
           >
-            <RotateCcw className="w-4 h-4" /> 초기화
+            <RotateCcw className="w-4 h-4" /> 통계 초기화
           </button>
         </div>
       </div>

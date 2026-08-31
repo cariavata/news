@@ -65,9 +65,6 @@ export default function AdminSEO() {
   };
 
   const getBaseDomain = () => {
-    if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')) {
-      return window.location.origin;
-    }
     return 'https://the-dailypulse.netlify.app';
   };
 

@@ -396,22 +396,19 @@ async function startServer() {
     res.type("text/html").send(`naver-site-verification: naver${req.params.id}.html`);
   });
 
+  const DEFAULT_SITE_DOMAIN = "https://the-dailypulse.netlify.app";
+
   app.get("/robots.txt", async (req, res) => {
     const seo = await getSeoSettings();
-    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.get("host");
-    const hostUrl = `${protocol}://${host}`;
     let robotsContent = (seo && seo.robotsTxt) ? seo.robotsTxt : "User-agent: *\nAllow: /";
     if (!robotsContent.toLowerCase().includes("sitemap:")) {
-      robotsContent += `\n\nSitemap: ${hostUrl}/sitemap.xml`;
+      robotsContent += `\n\nSitemap: ${DEFAULT_SITE_DOMAIN}/sitemap.xml`;
     }
     res.type("text/plain").send(robotsContent);
   });
 
   app.get("/sitemap.xml", async (req, res) => {
-    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.get("host");
-    const hostUrl = `${protocol}://${host}`;
+    const hostUrl = DEFAULT_SITE_DOMAIN;
     const seo = await getSeoSettings();
 
     if (seo && seo.sitemapXml && seo.sitemapXml.trim().startsWith("<")) {
@@ -465,9 +462,7 @@ async function startServer() {
   });
 
   app.get("/rss.xml", async (req, res) => {
-    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.get("host");
-    const hostUrl = `${protocol}://${host}`;
+    const hostUrl = DEFAULT_SITE_DOMAIN;
     const seo = await getSeoSettings();
 
     if (seo && seo.rssXml && seo.rssXml.trim().startsWith("<")) {

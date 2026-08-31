@@ -1,43 +1,54 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface AdsenseBannerProps {
   client: string;
-  slot: string;
+  slot?: string;
   format?: string;
   responsive?: boolean;
+  className?: string;
 }
 
-export default function AdsenseBanner({ client, slot, format = 'auto', responsive = true }: AdsenseBannerProps) {
+export default function AdsenseBanner({ 
+  client, 
+  slot = '6799823492', 
+  format = 'auto', 
+  responsive = true,
+  className = ''
+}: AdsenseBannerProps) {
   const adRef = useRef<HTMLModElement>(null);
-  const pushedCount = useRef(0);
+  const pushedRef = useRef(false);
+  const [adLoaded, setAdLoaded] = useState(false);
 
   useEffect(() => {
-    // Only push if not already pushed by this component instance
-    if (typeof window !== 'undefined' && pushedCount.current === 0) {
-      // Small timeout to ensure DOM is ready and Avoid strict mode double-firing racing
+    if (typeof window !== 'undefined' && !pushedRef.current) {
       const timer = setTimeout(() => {
-        if (adRef.current && !adRef.current.getAttribute('data-ad-status')) {
-            try {
-              ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-            } catch (e: any) {
-              console.warn('AdSense push error:', e.message);
-            }
+        try {
+          if (adRef.current && !adRef.current.getAttribute('data-ad-status')) {
+            ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+            pushedRef.current = true;
+            setAdLoaded(true);
+          }
+        } catch (e: any) {
+          console.warn('Google AdSense push notice:', e.message);
         }
-      }, 300);
-      pushedCount.current += 1;
+      }, 200);
+
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [client, slot]);
 
   return (
-    <ins
-      ref={adRef}
-      className="adsbygoogle"
-      style={{ display: 'block', width: '100%', height: '100%' }}
-      data-ad-client={client}
-      data-ad-slot={slot}
-      data-ad-format={format}
-      data-full-width-responsive={responsive ? 'true' : 'false'}
-    />
+    <div className={`w-full overflow-hidden flex flex-col items-center justify-center min-h-[120px] ${className}`}>
+      <ins
+        ref={adRef}
+        className="adsbygoogle"
+        style={{ display: 'block', width: '100%', minHeight: '100px' }}
+        data-ad-client={client}
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive={responsive ? 'true' : 'false'}
+      />
+    </div>
   );
 }
+

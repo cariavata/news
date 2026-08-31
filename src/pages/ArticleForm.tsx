@@ -271,20 +271,34 @@ export default function ArticleForm() {
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2">
-            <label className="font-bold text-sm text-slate-700">대표 이미지 첨부</label>
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-sm text-slate-700">기사 썸네일 (선택 사항)</label>
+              <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-medium">
+                💡 미등록 시 자동 텍스트 썸네일 적용 (DB 용량 0% 소모)
+              </span>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <input 
                 type="url" 
                 value={formData.imageUrl}
                 onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full"
-                placeholder="또는 이미지 URL을 입력하세요 (https://...)"
+                className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full text-sm"
+                placeholder="이미지 URL (비워둘 시 감각적인 텍스트 썸네일로 자동 표시됩니다)"
               />
               <span className="text-slate-400 font-bold shrink-0">OR</span>
               <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300 flex items-center gap-2">
                 <span>{uploadingImage ? '업로드 중...' : '내 컴퓨터에서 사진 추가'}</span>
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
               </label>
+              {formData.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, imageUrl: ''})}
+                  className="px-3 py-3 border border-red-200 text-red-600 hover:bg-red-50 rounded-md text-xs font-bold transition whitespace-nowrap shrink-0"
+                >
+                  이미지 제거 (텍스트 썸네일 사용)
+                </button>
+              )}
             </div>
             {formData.imageUrl && (
               <img src={formData.imageUrl} alt="preview" className="mt-2 h-32 w-auto object-cover rounded-md border border-slate-200" />

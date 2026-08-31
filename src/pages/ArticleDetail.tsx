@@ -134,33 +134,26 @@ export default function ArticleDetail() {
             </div>
           )}
 
-          {/* In-article Ad Banner */}
-          {adBanners && adBanners.length > 0 && (
-            <div className="mt-12 pt-6 border-t border-slate-100">
-              {(() => {
-                const banner = adBanners[0];
-                const adClient = seoSettings.googleAdsenseClient || "ca-pub-6799823492487492";
-                if (banner.type === 'adsense') {
-                  return (
-                    <div className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 relative overflow-hidden text-center min-h-[140px] flex items-center justify-center">
-                      <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10 pointer-events-none">
-                        광고
-                      </div>
-                      <AdsenseBanner client={adClient} slot={banner.adsenseSlot!} />
-                    </div>
-                  );
-                }
-                return (
-                  <a href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-lg border border-slate-200">
-                    <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
-                      광고
-                    </div>
-                    <img src={banner.imageUrl} alt="Advertisement" className="w-full h-auto max-h-[180px] object-cover" />
-                  </a>
-                );
-              })()}
-            </div>
-          )}
+          {/* Article Bottom Google AdSense Unit */}
+          <div className="mt-12 pt-6 border-t border-slate-200">
+            {(() => {
+              const adsenseBanner = adBanners?.find(b => b.type === 'adsense');
+              const adClient = seoSettings.googleAdsenseClient || "ca-pub-6799823492487492";
+              const adSlot = adsenseBanner?.adsenseSlot || "6799823492";
+
+              return (
+                <div className="w-full bg-slate-50/60 border border-slate-200/80 rounded-xl p-3 sm:p-4 relative overflow-hidden text-center min-h-[140px] flex flex-col items-center justify-center">
+                  <div className="flex items-center justify-between w-full mb-2 px-1 text-[11px] font-semibold text-slate-400">
+                    <span className="tracking-widest uppercase">ADVERTISEMENT / 광고</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Google AdSense</span>
+                  </div>
+                  <div className="w-full flex-1 flex items-center justify-center">
+                    <AdsenseBanner client={adClient} slot={adSlot} responsive={true} format="auto" />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
 
           <div className="mt-16 pt-8 border-t border-slate-200 flex justify-between items-center">
             <button onClick={() => navigate(article.categoryId ? `/category/${article.categoryId}` : '/')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition">

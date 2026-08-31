@@ -7,6 +7,7 @@ import Sidebar from '../components/Sidebar';
 import OpinionSection from '../components/OpinionSection';
 import CardNewsList from '../components/CardNewsList';
 import VisualSection from '../components/VisualSection';
+import ArticleThumbnail from '../components/ArticleThumbnail';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { User, Loader2 } from 'lucide-react';
@@ -62,11 +63,12 @@ export default function CategoryView() {
                 categoryArticles.map(article => (
                   <Link to={`/article/${article.id}`} key={article.id} className="block group">
                     <article className="bg-white p-6 sm:p-8 rounded-lg shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-6 group-hover:border-slate-300 group-hover:shadow-md transition duration-300">
-                      {article.imageUrl && (
-                        <div className="sm:w-2/5 shrink-0 rounded overflow-hidden bg-slate-100">
-                          <img src={article.imageUrl} alt={article.title} className="w-full h-48 sm:h-full object-cover group-hover:scale-[1.03] transition duration-500" />
-                        </div>
-                      )}
+                      <ArticleThumbnail 
+                        article={article} 
+                        categoryName={category?.name} 
+                        aspectRatio="square" 
+                        className="sm:w-2/5 shrink-0 rounded-lg" 
+                      />
                       <div className="flex-1 flex flex-col pt-1">
                         <span className="text-emerald-600 font-bold text-xs tracking-widest mb-3 inline-block">
                           {category?.name || '일반 뉴스'}

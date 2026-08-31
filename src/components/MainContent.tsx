@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
 import OpinionSection from './OpinionSection';
+import ArticleThumbnail from './ArticleThumbnail';
 import { useState, useEffect } from 'react';
 import { Article } from '../types';
 import { renderContentWithLinks } from '../lib/renderLinks';
@@ -110,18 +111,12 @@ export default function MainContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
           {featuredArticles.map(article => (
             <Link to={`/article/${article.id}`} key={article.id} className="group cursor-pointer flex flex-col">
-              <div className="relative overflow-hidden mb-4 bg-slate-100 rounded-lg aspect-square">
-                {article.imageUrl && (
-                  <img 
-                    src={article.imageUrl} 
-                    alt={article.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" 
-                  />
-                )}
-                <div className="absolute top-4 left-4">
-                  <span className="bg-slate-900/90 text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 tracking-wider shadow-sm uppercase backdrop-blur-sm">주요 기사</span>
-                </div>
-              </div>
+              <ArticleThumbnail 
+                article={article} 
+                categoryName={getCategoryName(article.categoryId)} 
+                aspectRatio="square" 
+                className="rounded-xl mb-4" 
+              />
               <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mb-3 tracking-wider">
                 <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}</span>
                 <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> {article.author}</span>
@@ -254,11 +249,12 @@ export default function MainContent() {
             <div className={`grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 ${isListCategory ? 'hidden md:grid' : ''}`}>
               {categoryArticles.slice(0, 3).map(article => (
                 <Link to={`/article/${article.id}`} key={article.id} className="p-6 sm:p-8 hover:bg-slate-50/50 transition-colors group cursor-pointer flex flex-col h-full block">
-                  {article.imageUrl && (
-                    <div className="rounded overflow-hidden mb-5 shrink-0 aspect-video md:aspect-square">
-                      <img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={article.title} />
-                    </div>
-                  )}
+                  <ArticleThumbnail 
+                    article={article} 
+                    categoryName={category.name} 
+                    aspectRatio="video" 
+                    className="rounded-lg mb-5 shrink-0" 
+                  />
                   <span className="text-emerald-600 text-[11px] font-bold tracking-widest mb-3 block">
                     {category.name}
                   </span>
@@ -285,11 +281,13 @@ export default function MainContent() {
                         {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}
                       </span>
                     </div>
-                    {article.imageUrl && (
-                      <div className="w-[84px] h-[84px] shrink-0 rounded-lg overflow-hidden bg-slate-100 border border-slate-200/60 shadow-sm shadow-black/5">
-                        <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      </div>
-                    )}
+                    <ArticleThumbnail 
+                      article={article} 
+                      categoryName={category.name} 
+                      aspectRatio="square" 
+                      showBadge={false} 
+                      className="w-[84px] h-[84px] shrink-0 rounded-lg p-2 text-[10px]" 
+                    />
                   </Link>
                 ))}
               </div>
