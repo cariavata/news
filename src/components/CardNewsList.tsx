@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Article } from '../types';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '../lib/dateUtils';
 import { Heart, Share2, Link as LinkIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
 import { renderContentWithLinks } from '../lib/renderLinks';
@@ -107,7 +106,7 @@ export default function CardNewsList({ articles, categoryName }: CardNewsListPro
                     {article.title}
                   </h3>
                   <div className="mt-auto pt-3 flex items-center justify-between text-xs font-bold text-slate-400 font-mono">
-                    <span>{formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}</span>
+                    <span>{formatRelativeTime(article.createdAt)}</span>
                     {article.likes ? (
                       <span className="flex items-center gap-1 text-red-500"><Heart className="w-3 h-3 fill-red-500" /> {article.likes}</span>
                     ) : null}
@@ -259,7 +258,7 @@ export default function CardNewsList({ articles, categoryName }: CardNewsListPro
                 </div>
                 <div className="flex flex-col gap-0.5 mt-1">
                   <span className="font-bold text-[13px] sm:text-sm text-slate-900">좋아요 {selectedArticle.likes || 0}개</span>
-                  <span className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">{formatDistanceToNow(new Date(selectedArticle.createdAt), { addSuffix: true, locale: ko })}</span>
+                  <span className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">{formatRelativeTime(selectedArticle.createdAt)}</span>
                 </div>
               </div>
             </div>

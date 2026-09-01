@@ -1,5 +1,5 @@
 import { Article } from '../types';
-import { MedicalTopic } from './autoPublishEngineTypes';
+import { MedicalTopic, CaseDemographic } from './autoPublishEngineTypes';
 import {
   CHECKUP_TOPICS,
   WOMENS_HEALTH_TOPICS,
@@ -7,7 +7,13 @@ import {
   ORIENTAL_MED_TOPICS,
   CATEGORY_TOPICS_MAP,
 } from './medicalDatabase';
-import { CASE_EXAMPLES } from './medicalData';
+import {
+  WOMENS_HEALTH_CASES,
+  CHECKUP_CASES,
+  SPINE_JOINT_CASES,
+  ORIENTAL_MED_CASES,
+  CASE_EXAMPLES,
+} from './medicalData';
 
 export {
   CHECKUP_TOPICS,
@@ -15,6 +21,10 @@ export {
   SPINE_JOINT_TOPICS,
   ORIENTAL_MED_TOPICS,
   CATEGORY_TOPICS_MAP,
+  WOMENS_HEALTH_CASES,
+  CHECKUP_CASES,
+  SPINE_JOINT_CASES,
+  ORIENTAL_MED_CASES,
   CASE_EXAMPLES
 };
 
@@ -123,6 +133,18 @@ export function getDayIndex(dateStr: string): number {
 }
 
 /**
+ * Generates a natural, pseudo-randomized morning publication time for each day.
+ * Returns hour (06~09 KST), minute (00~59), and second (00~59).
+ */
+export function getDeterministicPublishTime(safeDayIndex: number): { hour: number; minute: number; second: number } {
+  // Morning hours: 6, 7, 8, 9 (KST)
+  const hour = 6 + ((safeDayIndex * 7 + 3) % 4);
+  const minute = (safeDayIndex * 17 + 23) % 60;
+  const second = (safeDayIndex * 29 + 41) % 60;
+  return { hour, minute, second };
+}
+
+/**
  * Generates clean, unique base topic name without brackets or redundant prefixes.
  */
 function cleanTopicTitle(rawTitle: string): string {
@@ -176,19 +198,41 @@ export function generateArticleForDate(dateStr: string): Article {
   // Strictly sanitize any remaining brackets or double spaces
   generatedTitle = generatedTitle.replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim();
   
-  // 3. Select Patient Case
-  const caseIndex = (safeDayIndex * 11 + 7) % CASE_EXAMPLES.length;
-  const patientCase = CASE_EXAMPLES[caseIndex];
+  // 3. Category & Condition-Specific Patient Case Selection
+  // Strictly ensures female patients for women's health conditions
+  const isFemaleCondition =
+    categoryId === 'womens-health' ||
+    /자궁|난소|생리|여성|갱년기|완경|질염|골반염|산후|임신|유방|HPV|다낭성/i.test(generatedTitle + ' ' + topic.tags.join(' '));
+
+  let patientCase: CaseDemographic;
+  if (isFemaleCondition) {
+    const caseIndex = (safeDayIndex * 7 + 3) % WOMENS_HEALTH_CASES.length;
+    patientCase = WOMENS_HEALTH_CASES[caseIndex];
+  } else if (categoryId === 'spine-joint') {
+    const caseIndex = (safeDayIndex * 7 + 3) % SPINE_JOINT_CASES.length;
+    patientCase = SPINE_JOINT_CASES[caseIndex];
+  } else if (categoryId === 'oriental-med') {
+    const caseIndex = (safeDayIndex * 7 + 3) % ORIENTAL_MED_CASES.length;
+    patientCase = ORIENTAL_MED_CASES[caseIndex];
+  } else {
+    const caseIndex = (safeDayIndex * 7 + 3) % CHECKUP_CASES.length;
+    patientCase = CHECKUP_CASES[caseIndex];
+  }
   
-  // 4. Views and Likes
-  const daysAgo = Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24)));
+  // 4. Deterministic Natural Morning Publication Time (KST UTC+9)
+  const { hour, minute, second } = getDeterministicPublishTime(safeDayIndex);
+  const createdAt = `${dateStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}+09:00`;
+  
+  // 5. Views and Likes
+  const articleTimestamp = new Date(createdAt).getTime();
+  const daysAgo = Math.max(0, Math.floor((Date.now() - articleTimestamp) / (1000 * 60 * 60 * 24)));
   const views = Math.min(18500, 450 + (safeDayIndex * 37) % 350 + Math.max(0, daysAgo * 12));
   const likes = Math.max(15, Math.floor(views * 0.045) + (safeDayIndex % 18));
   
-  // 5. Excerpt
+  // 6. Excerpt
   const excerpt = `${generatedTitle}. ${topic.shortSummary} ${patientCase.location} ${patientCase.ageGender} 환자의 실제 진료 및 회복 사례를 바탕으로 단계별 임상 로드맵을 제시합니다.`;
   
-  // 6. Rich Markdown Long-Form Content
+  // 7. Rich Markdown Long-Form Content
   const markdownContent = `## 📌 오늘의 핵심 의학 브리핑: ${generatedTitle}
 
 ${topic.shortSummary}
@@ -290,7 +334,7 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
     categoryId,
     imageUrl: '',
     author: '데일리펄스 의학전문팀',
-    createdAt: `${dateStr}T09:00:00.000Z`,
+    createdAt,
     isFeatured: false,
     isTrending: safeDayIndex % 5 === 0,
     isBreaking: safeDayIndex % 11 === 0,
@@ -301,37 +345,47 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
 }
 
 /**
- * Returns all auto-published articles from current date (KST) going backwards in time.
+ * Returns all auto-published articles that have ALREADY been published up to current time (KST).
+ * Strictly filters out any future articles.
  */
 export function getPublishedAutoArticles(limitCount: number = 365): Article[] {
   const articles: Article[] = [];
-  
   const now = new Date();
+  const nowTime = now.getTime();
+  
+  // Calculate current date in KST
   const kstOffset = 9 * 60;
   const localOffset = now.getTimezoneOffset();
-  const kstDate = new Date(now.getTime() + (kstOffset + localOffset) * 60 * 1000);
+  const kstDate = new Date(nowTime + (kstOffset + localOffset) * 60 * 1000);
   
   const minDate = new Date('2024-01-01T00:00:00Z');
   const currentDate = new Date(kstDate.getFullYear(), kstDate.getMonth(), kstDate.getDate());
   
   let count = 0;
+  // Look back up to minDate
   while (currentDate >= minDate && count < limitCount) {
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     const day = String(currentDate.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
-    articles.push(generateArticleForDate(dateStr));
+    const article = generateArticleForDate(dateStr);
+    const articleTime = new Date(article.createdAt).getTime();
+    
+    // STRICT FILTER: Only include articles whose scheduled publication timestamp has passed
+    if (articleTime <= nowTime) {
+      articles.push(article);
+      count++;
+    }
     
     currentDate.setDate(currentDate.getDate() - 1);
-    count++;
   }
   
   return articles;
 }
 
 /**
- * Directly returns auto-published articles for a specific category.
+ * Directly returns auto-published articles for a specific category up to current time.
  */
 export function getPublishedAutoArticlesForCategory(categoryId: string, limitCount: number = 100): Article[] {
   const allArticles = getPublishedAutoArticles(limitCount * 4 + 20);

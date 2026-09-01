@@ -56,10 +56,13 @@ export const sanitizeArticles = (articles: any[]): Article[] => {
 export const mergeWithAutoArticles = (rawArticles: Article[]): Article[] => {
   const autoArticles = getPublishedAutoArticles(180);
   const articleMap = new Map<string, Article>();
+  const nowTime = Date.now();
 
-  // 1. Add auto-published articles (1 unique article per day up to today)
+  // 1. Add auto-published articles (only those whose publish time has arrived)
   autoArticles.forEach(a => {
-    articleMap.set(a.id, a);
+    if (new Date(a.createdAt || 0).getTime() <= nowTime) {
+      articleMap.set(a.id, a);
+    }
   });
 
   // 2. User-authored articles override or blend in (skip stale stored auto- articles to use fresh engine)

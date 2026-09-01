@@ -1,7 +1,6 @@
 import { Clock, User, ArrowRight, X, ChevronLeft, ChevronRight, Heart, Share2, Link as LinkIcon } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '../lib/dateUtils';
 import { Link, useNavigate } from 'react-router-dom';
 import OpinionSection from './OpinionSection';
 import ArticleThumbnail from './ArticleThumbnail';
@@ -118,7 +117,7 @@ export default function MainContent() {
                 className="rounded-xl mb-4" 
               />
               <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mb-3 tracking-wider">
-                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}</span>
+                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {formatRelativeTime(article.createdAt)}</span>
                 <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> {article.author}</span>
               </div>
               <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 leading-[1.3] mb-3 group-hover:text-emerald-700 transition-colors break-keep line-clamp-2">
@@ -278,7 +277,7 @@ export default function MainContent() {
                         {article.title}
                       </h3>
                       <span className="text-xs text-slate-400 font-mono mt-auto">
-                        {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}
+                        {formatRelativeTime(article.createdAt)}
                       </span>
                     </div>
                     <ArticleThumbnail 
@@ -408,7 +407,7 @@ export default function MainContent() {
                 </div>
                 <div className="flex flex-col gap-0.5 mt-1">
                   <span className="font-bold text-[13px] sm:text-sm text-slate-900">좋아요 {selectedCardNews.likes || 0}개</span>
-                  <span className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">{formatDistanceToNow(new Date(selectedCardNews.createdAt), { addSuffix: true, locale: ko })}</span>
+                  <span className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">{formatRelativeTime(selectedCardNews.createdAt)}</span>
                 </div>
               </div>
             </div>

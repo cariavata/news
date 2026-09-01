@@ -8,8 +8,7 @@ import OpinionSection from '../components/OpinionSection';
 import CardNewsList from '../components/CardNewsList';
 import VisualSection from '../components/VisualSection';
 import ArticleThumbnail from '../components/ArticleThumbnail';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '../lib/dateUtils';
 import { User, Loader2 } from 'lucide-react';
 
 export default function CategoryView() {
@@ -103,7 +102,7 @@ export default function CategoryView() {
                           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 font-mono">
                             <span>{article.author}</span>
                             <span>•</span>
-                            <span>{formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: ko })}</span>
+                            <span>{formatRelativeTime(article.createdAt)}</span>
                           </div>
                         </div>
                       </div>
