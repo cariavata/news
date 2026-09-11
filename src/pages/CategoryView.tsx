@@ -5,7 +5,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import OpinionSection from '../components/OpinionSection';
-import CardNewsList from '../components/CardNewsList';
 import VisualSection from '../components/VisualSection';
 import ArticleThumbnail from '../components/ArticleThumbnail';
 import { formatRelativeTime } from '../lib/dateUtils';
@@ -50,10 +49,7 @@ export default function CategoryView() {
       
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="col-span-1 lg:col-span-9 flex flex-col gap-10">
-          {categoryId === 'cardnews' ? (
-            <CardNewsList articles={categoryArticles} categoryName={category?.name || '카드뉴스'} />
-          ) : (
-            <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-8">
               {categoryArticles.length === 0 ? (
                 <div className="bg-white p-12 text-center rounded-lg border border-slate-200">
                   <p className="text-slate-500 font-medium font-sans">해당 카테고리에 등록된 기사가 없습니다.</p>
@@ -79,12 +75,12 @@ export default function CategoryView() {
                           {article.excerpt}
                         </p>
                         <div className="mt-auto flex flex-col gap-3 pt-4">
-                          {article.categoryId === 'opinion' && article.doctorName && (
+                          {(article.categoryId === 'opinion' || categoryId === 'opinion') && (article.doctorName || article.doctorImage) && (
                             <div className="flex items-center gap-3 w-fit">
                               {article.doctorImage ? (
-                                <img src={article.doctorImage} alt={article.doctorName || '의사 사진'} className="hidden sm:block w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm" />
+                                <img src={article.doctorImage} alt={article.doctorName || '의사 사진'} className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm" />
                               ) : (
-                                <div className="hidden sm:flex w-9 h-9 rounded-full bg-slate-100 items-center justify-center shrink-0 border border-slate-200">
+                                <div className="flex w-9 h-9 rounded-full bg-slate-100 items-center justify-center shrink-0 border border-slate-200">
                                   <User className="w-4 h-4 text-slate-400" />
                                 </div>
                               )}
@@ -129,10 +125,9 @@ export default function CategoryView() {
                 </div>
               )}
             </div>
-          )}
           
           {/* 하단 전문가 칼럼 / 오피니언 리스트 */}
-          {categoryId !== 'opinion' && categoryId !== 'cardnews' && (
+          {categoryId !== 'opinion' && (
             <OpinionSection />
           )}
         </div>

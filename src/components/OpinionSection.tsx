@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useAppStore } from '../store/useArticleStore';
 import { Link } from 'react-router-dom';
 import { ArrowRight, User } from 'lucide-react';
+import ArticleThumbnail from './ArticleThumbnail';
 
 export default function OpinionSection() {
   const { articles, fetchArticlesByCategory, categoryFetchStatus } = useAppStore();
@@ -31,32 +32,48 @@ export default function OpinionSection() {
       {opinionArticles.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-800">
           {opinionArticles.map(article => (
-            <Link to={`/article/${article.id}`} key={article.id} className="p-6 hover:bg-slate-800 transition-colors group cursor-pointer flex flex-col h-full block">
-              {article.doctorImage || article.imageUrl ? (
-                <div className="w-32 h-32 rounded-2xl overflow-hidden mb-5 border border-slate-700 shrink-0 shadow-md">
-                  <img src={article.doctorImage || article.imageUrl} className="w-full h-full object-cover" alt={article.doctorName || article.author} />
-                </div>
-              ) : (
-                <div className="w-32 h-32 rounded-2xl bg-slate-800 flex items-center justify-center mb-5 border border-slate-700 text-slate-500 shrink-0 shadow-md">
-                  <User className="w-12 h-12" />
-                </div>
-              )}
-              <h3 className="text-lg font-serif font-bold text-slate-100 mb-3 group-hover:text-blue-400 transition-colors leading-snug break-keep">
+            <Link to={`/article/${article.id}`} key={article.id} className="p-6 hover:bg-slate-800/80 transition-colors group cursor-pointer flex flex-col h-full block">
+              {/* Text-based Thumbnail */}
+              <ArticleThumbnail 
+                article={article} 
+                categoryName="오피니언" 
+                aspectRatio="video" 
+                className="rounded-xl mb-4 w-full shrink-0 shadow-md border border-slate-800" 
+              />
+              
+              <h3 className="text-base sm:text-lg font-serif font-bold text-slate-100 mb-3 group-hover:text-blue-400 transition-colors leading-snug break-keep line-clamp-2">
                 {article.title}
               </h3>
-              {article.doctorSpecialty && (
-                <span className="text-emerald-400 text-xs font-medium tracking-widest block mb-1 mt-auto">
-                  {article.doctorSpecialty}
-                </span>
-              )}
-              <span className="text-blue-400 text-sm font-bold tracking-widest block">
-                {article.doctorName || article.author || '전문가'}
-              </span>
-              {article.hospitalName && (
-                <span className="text-slate-400 text-xs font-medium tracking-wide block mt-1">
-                  {article.hospitalName}
-                </span>
-              )}
+              
+              {/* Doctor Specialist Profile Photo & Info */}
+              <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-800">
+                {article.doctorImage ? (
+                  <img 
+                    src={article.doctorImage} 
+                    className="w-11 h-11 rounded-full object-cover border border-slate-700 shrink-0 shadow" 
+                    alt={article.doctorName || '전문의'} 
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 text-slate-400 shrink-0">
+                    <User className="w-5 h-5" />
+                  </div>
+                )}
+                <div className="flex flex-col min-w-0">
+                  <span className="text-white text-sm font-bold tracking-tight truncate">
+                    {article.doctorName || article.author || '전문가'}
+                  </span>
+                  {article.doctorSpecialty && (
+                    <span className="text-emerald-400 text-xs font-medium tracking-tight truncate">
+                      {article.doctorSpecialty}
+                    </span>
+                  )}
+                  {article.hospitalName && (
+                    <span className="text-slate-400 text-[11px] truncate">
+                      {article.hospitalName}
+                    </span>
+                  )}
+                </div>
+              </div>
             </Link>
           ))}
         </div>

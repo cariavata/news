@@ -1,6 +1,6 @@
 {
   "name": "The Daily Pulse",
-  "description": "Modern online newspaper prototype with trustworthy typography and layouts.",
+  "description": "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

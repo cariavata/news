@@ -99,7 +99,7 @@ export const ensureFallbackContent = () => {
 
   useAppStore.setState({
     articles: mergedArticles,
-    categories: state.categories && state.categories.length > 0 ? state.categories : fallbackCategories,
+    categories: (state.categories && state.categories.length > 0 ? state.categories : fallbackCategories).filter(c => c.id !== 'cardnews'),
     companyPages: state.companyPages && state.companyPages.length > 0 ? state.companyPages : fallbackCompanyPages,
     isFirebaseSettingsLoaded: true,
     hasFetchedInitialArticles: true
@@ -485,20 +485,22 @@ export const useAppStore = create<AppState>()(
       },
 
       seoSettings: {
-        siteName: "DAILY PULSE",
+        siteName: "데일리펄스",
         logoUrl: "",
         customHeadTags: "",
-        title: "DAILY PULSE | 신뢰할 수 있는 보건의료 소식",
-        description: "우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.",
-        keywords: "건강, 의학, 보건, 의료, 건강검진, 여성건강, 한의학, 척추관절, 카드뉴스, 오피니언",
+        title: "데일리펄스 | 신뢰할 수 있는 보건의료 소식",
+        description: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
+        keywords: "건강, 의학, 보건, 의료, 건강검진, 여성건강, 한의학, 척추관절, 오피니언, 데일리펄스",
         robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml",
         adsTxt: "google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0",
-        naverSiteVerification: "a9a11caab39330cf1a67069dc1c487ed49b767c4",
-        googleSiteVerification: "",
+        naverSiteVerification: "d060eade5473b610c0645fe41bbce092e0917fad",
+        googleSiteVerification: "57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68",
         googleAdsenseClient: "ca-pub-6799823492487492",
-        ogTitle: "DAILY PULSE | 신뢰할 수 있는 보건의료 소식",
-        ogDescription: "우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.",
-        ogImage: ""
+        ogTitle: "데일리펄스 | 신뢰할 수 있는 보건의료 소식",
+        ogDescription: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
+        ogImage: "",
+        homeIntroText: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
+        homeIntroEnabled: true
       },
       updateSeoSettings: async (settings) => {
         const cleanObj = cleanFirestoreData(settings);

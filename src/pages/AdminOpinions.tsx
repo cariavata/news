@@ -28,6 +28,7 @@ export default function AdminOpinions() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-100 text-slate-600 text-sm font-bold uppercase tracking-wider">
+              <th className="p-4 border-b border-slate-200">전문의 사진</th>
               <th className="p-4 border-b border-slate-200">제목</th>
               <th className="p-4 border-b border-slate-200">전문의명</th>
               <th className="p-4 border-b border-slate-200">병원명</th>
@@ -39,6 +40,15 @@ export default function AdminOpinions() {
           <tbody className="text-sm">
             {opinionArticles.map((article) => (
               <tr key={article.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                <td className="p-4">
+                  {article.doctorImage ? (
+                    <img src={article.doctorImage} alt="전문의" className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs border border-slate-200">
+                      미등록
+                    </div>
+                  )}
+                </td>
                 <td className="p-4 font-medium text-slate-900 max-w-xs truncate" title={article.title}>
                   {article.title}
                 </td>
@@ -66,7 +76,7 @@ export default function AdminOpinions() {
             ))}
             {opinionArticles.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500">
+                <td colSpan={7} className="p-8 text-center text-slate-500">
                   등록된 오피니언 기사가 없습니다.
                 </td>
               </tr>

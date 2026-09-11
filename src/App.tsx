@@ -52,13 +52,13 @@ export default function App() {
       <FirebaseSync />
       
       <Helmet>
-        <title>{seoSettings.title || 'DAILY PULSE'}</title>
+        <title>{seoSettings.title || '데일리펄스 | 신뢰할 수 있는 보건의료 소식'}</title>
         <meta name="description" content={cleanDescription} />
         {seoSettings.keywords && <meta name="keywords" content={seoSettings.keywords} />}
         
         {/* Open Graph Tags for SNS Share */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content={seoSettings.ogTitle || seoSettings.title || 'DAILY PULSE'} />
+        <meta property="og:title" content={seoSettings.ogTitle || seoSettings.title || '데일리펄스 | 신뢰할 수 있는 보건의료 소식'} />
         <meta property="og:description" content={cleanOgDescription} />
         {seoSettings.ogImage && <meta property="og:image" content={seoSettings.ogImage} />}
         {seoSettings.siteName && <meta property="og:site_name" content={seoSettings.siteName} />}

@@ -30,9 +30,17 @@ export default function AdminSEO() {
   });
 
   useEffect(() => {
+    const targetTitle = '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
+    const targetDesc = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!';
+
     setFormData({
       ...seoSettings,
-      homeIntroText: seoSettings.homeIntroText ?? '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.',
+      siteName: seoSettings.siteName || '데일리펄스',
+      title: (!seoSettings.title || seoSettings.title.includes('DAILY PULSE') || seoSettings.title.includes('더데일리펄스')) ? targetTitle : seoSettings.title,
+      description: (!seoSettings.description || seoSettings.description.includes('가장 확실한 맥박') || seoSettings.description.includes('정확하고 믿을 수 있는 의료 정보') || seoSettings.description.includes('신선하고 신뢰할 수 있으며')) ? targetDesc : seoSettings.description,
+      ogTitle: (!seoSettings.ogTitle || seoSettings.ogTitle.includes('DAILY PULSE') || seoSettings.ogTitle.includes('더데일리펄스')) ? targetTitle : seoSettings.ogTitle,
+      ogDescription: (!seoSettings.ogDescription || seoSettings.ogDescription.includes('가장 확실한 맥박') || seoSettings.ogDescription.includes('정확하고 믿을 수 있는 의료 정보') || seoSettings.ogDescription.includes('신선하고 신뢰할 수 있으며')) ? targetDesc : seoSettings.ogDescription,
+      homeIntroText: seoSettings.homeIntroText || targetDesc,
       homeIntroEnabled: seoSettings.homeIntroEnabled !== false,
       naverSiteVerification: seoSettings.naverSiteVerification || 'd060eade5473b610c0645fe41bbce092e0917fad',
       googleSiteVerification: seoSettings.googleSiteVerification || '57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68',
@@ -52,15 +60,6 @@ export default function AdminSEO() {
       alert('저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      compressImage(file, 400, 400, (base64) => {
-        setFormData({ ...formData, logoUrl: base64 });
-      });
     }
   };
 
@@ -94,8 +93,8 @@ export default function AdminSEO() {
 
   const handleAutoGenerateRss = () => {
     const domain = getBaseDomain();
-    const siteTitle = formData.title || 'DAILY PULSE | 신뢰할 수 있는 보건의료 소식';
-    const siteDesc = formData.description || '우리 가족의 건강을 위한 가장 확실한 맥박, 건강 전문 미디어 데일리펄스입니다.';
+    const siteTitle = formData.title || '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
+    const siteDesc = formData.description || '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!';
     const nowRfc = new Date().toUTCString();
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n`;
@@ -132,7 +131,7 @@ export default function AdminSEO() {
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden max-w-4xl">
       <div className="p-6 border-b border-slate-200 bg-slate-50">
         <h1 className="text-xl font-bold font-sans text-slate-800">사이트 기본 정보 및 검색 최적화 (SEO)</h1>
-        <p className="text-sm text-slate-500 mt-2">사이트 명칭, 로고, 네이버 서치어드바이저, 구글 수집 등의 정보를 입력합니다.</p>
+        <p className="text-sm text-slate-500 mt-2">사이트 명칭, 검색 최적화, 네이버 서치어드바이저, 구글 수집 등의 정보를 입력합니다.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-8">
@@ -148,7 +147,7 @@ export default function AdminSEO() {
                 value={formData.siteName}
                 onChange={(e) => setFormData({...formData, siteName: e.target.value})}
                 className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
-                placeholder="예: DAILY PULSE"
+                placeholder="예: 데일리펄스"
               />
             </div>
             <div>
@@ -171,27 +170,6 @@ export default function AdminSEO() {
                   메인 페이지에 소개 문구 켜기 (비쥬얼 섹션 표시)
                 </label>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">상단 로고 이미지 (선택, 권장 비율 가로형)</label>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <input 
-                  type="url" 
-                  value={formData.logoUrl}
-                  onChange={(e) => setFormData({...formData, logoUrl: e.target.value})}
-                  className="w-full sm:flex-1 border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none"
-                  placeholder="로고 이미지 URL 또는 컴퓨터에서 업로드"
-                />
-                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
-                  <span>내 컴퓨터에서 업로드</span>
-                  <input type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml" onChange={handleImageUpload} />
-                </label>
-              </div>
-              {formData.logoUrl && (
-                <div className="mt-4 border border-slate-200 rounded-md p-4 bg-slate-100/50 inline-block">
-                  <img src={formData.logoUrl} alt="Logo preview" className="h-12 object-contain" />
-                </div>
-              )}
             </div>
           </div>
         </section>
@@ -379,7 +357,7 @@ export default function AdminSEO() {
                 value={formData.rssXml}
                 onChange={(e) => setFormData({...formData, rssXml: e.target.value})}
                 className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-emerald-600 outline-none resize-y font-mono text-xs bg-white text-slate-800"
-                placeholder={`<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>DAILY PULSE</title>\n    <link>https://the-dailypulse.netlify.app</link>\n  </channel>\n</rss>`}
+                placeholder={`<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>더데일리펄스</title>\n    <link>https://the-dailypulse.netlify.app</link>\n  </channel>\n</rss>`}
               />
               <div className="flex justify-between items-center mt-2 pl-1">
                 <span className="text-xs text-slate-500">네이버 서치어드바이저 {'>'} RSS 제출에 <code>https://the-dailypulse.netlify.app/rss.xml</code> 입력</span>

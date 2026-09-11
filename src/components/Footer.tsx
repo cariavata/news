@@ -32,7 +32,9 @@ export default function Footer() {
        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <h2 className="text-3xl font-serif font-bold text-white mb-4">데일리 펄스</h2>
+            <h2 className="text-3xl font-serif font-bold text-white mb-4">
+              {seoSettings.siteName || '데일리펄스'}
+            </h2>
             <p className="text-sm font-sans max-w-sm mb-6 leading-relaxed break-keep">
               {seoSettings.description}
             </p>
@@ -64,7 +66,7 @@ export default function Footer() {
 
        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-slate-500">
-            &copy; {new Date().getFullYear()} 데일리 펄스 미디어. 모든 권리 보유.
+            &copy; {new Date().getFullYear()} {seoSettings.siteName || '데일리펄스'} 미디어. 모든 권리 보유.
           </p>
           <Link to={isAuthenticated ? "/admin" : "/admin/login"} className="text-xs text-slate-500 hover:text-white hover:underline transition font-mono">
             {isAuthenticated ? '관리자 페이지' : '관리자 로그인'}

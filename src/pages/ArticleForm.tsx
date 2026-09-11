@@ -177,7 +177,7 @@ export default function ArticleForm() {
               onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
               className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition bg-white"
             >
-              {categories.map(c => (
+              {categories.filter(c => c.id !== 'cardnews').map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -304,78 +304,6 @@ export default function ArticleForm() {
               <img src={formData.imageUrl} alt="preview" className="mt-2 h-32 w-auto object-cover rounded-md border border-slate-200" />
             )}
           </div>
-
-          {formData.categoryId === 'cardnews' && (
-            <div className="flex flex-col gap-2 md:col-span-2 bg-blue-50 border border-blue-200 rounded-md p-6">
-              <h3 className="font-bold text-slate-800 mb-2 border-b border-blue-200 pb-2">카드뉴스 이미지 (정사각형 비율 권장)</h3>
-              <p className="text-sm text-slate-600 mb-4">카드뉴스의 여러 장의 이미지를 순서대로 업로드하세요. 드래그하여 업로드된 이미지 순서를 변경할 수 있습니다.</p>
-              
-              <div className="flex flex-wrap gap-4 mb-4">
-                {formData.cardNewsImages.map((imgUrl, idx) => (
-                  <div 
-                    key={idx} 
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = 'move';
-                      e.dataTransfer.setData('text/plain', idx.toString());
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = 'move';
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                      const toIdx = idx;
-                      if (fromIdx !== toIdx) {
-                        const newArr = [...formData.cardNewsImages];
-                        const [movedItem] = newArr.splice(fromIdx, 1);
-                        newArr.splice(toIdx, 0, movedItem);
-                        setFormData({...formData, cardNewsImages: newArr});
-                      }
-                    }}
-                    className="relative group rounded-md border border-slate-300 overflow-hidden w-24 h-24 sm:w-32 sm:h-32 cursor-move"
-                  >
-                    <img src={imgUrl} alt={`Card news ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
-                    <div className="absolute inset-0 bg-black/50 flex flex-col justify-between p-1 opacity-0 group-hover:opacity-100 transition">
-                      <div className="flex justify-between">
-                        <button type="button" onClick={(e) => {
-                          e.stopPropagation();
-                          if (idx > 0) {
-                            const newArr = [...formData.cardNewsImages];
-                            [newArr[idx - 1], newArr[idx]] = [newArr[idx], newArr[idx - 1]];
-                            setFormData({...formData, cardNewsImages: newArr});
-                          }
-                        }} className="text-white hover:text-blue-300 px-1 disabled:opacity-50" disabled={idx === 0}>◀</button>
-                        <button type="button" onClick={(e) => {
-                          e.stopPropagation();
-                          if (idx < formData.cardNewsImages.length - 1) {
-                            const newArr = [...formData.cardNewsImages];
-                            [newArr[idx + 1], newArr[idx]] = [newArr[idx], newArr[idx + 1]];
-                            setFormData({...formData, cardNewsImages: newArr});
-                          }
-                        }} className="text-white hover:text-blue-300 px-1 disabled:opacity-50" disabled={idx === formData.cardNewsImages.length - 1}>▶</button>
-                      </div>
-                      <button type="button" onClick={(e) => {
-                        e.stopPropagation();
-                        setFormData({
-                          ...formData, 
-                          cardNewsImages: formData.cardNewsImages.filter((_, i) => i !== idx)
-                        });
-                      }} className="bg-red-500 text-white rounded text-xs py-1 mt-auto hover:bg-red-600 font-bold">삭제</button>
-                    </div>
-                    <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[10px] font-bold px-1 rounded pointer-events-none">{idx + 1}</span>
-                  </div>
-                ))}
-                
-                <label className="cursor-pointer border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-500 flex flex-col items-center justify-center rounded-md font-medium text-sm transition w-24 h-24 sm:w-32 sm:h-32">
-                  <span className="text-2xl mb-1">+</span>
-                  <span>사진 추가</span>
-                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleCardNewsImagesUpload} />
-                </label>
-              </div>
-            </div>
-          )}
 
           <div className="flex flex-col gap-4 md:col-span-2 bg-slate-50 p-4 border border-slate-200 rounded-md mt-2">
             <h3 className="font-bold text-sm text-slate-800 border-b border-slate-200 pb-2">홈페이지 노출 설정 (위치 배정)</h3>

@@ -103,7 +103,8 @@ export default function VisualSection({
   const { seoSettings } = useAppStore();
   
   const isEnabled = seoSettings.homeIntroEnabled !== false;
-  const introText = title || seoSettings.homeIntroText || '연결된 세계에 신선하고 신뢰할 수 있으며 엄격하게 팩트 체크된 저널리즘을 제공합니다.';
+  const defaultIntro = '정형외과부터 산부인과, 필수 건강검진까지. 정확하고 믿을 수 있는 의료 정보를 전달합니다.';
+  const introText = title || seoSettings.homeIntroText || defaultIntro;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoom, setZoom] = useState(false);

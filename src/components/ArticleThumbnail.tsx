@@ -185,8 +185,12 @@ export default function ArticleThumbnail({
 }: ArticleThumbnailProps) {
   const [imgError, setImgError] = React.useState(false);
 
+  const catKey = article.categoryId || (article as any).category || 'default';
+  const isOpinion = catKey === 'opinion';
+
   // If valid image exists and hasn't errored, display the image
-  if (article.imageUrl && !imgError) {
+  // (EXCEPT for opinion category: opinion thumbnails must be rendered as text while preserving doctor photo)
+  if (article.imageUrl && !imgError && !isOpinion) {
     return (
       <div className={`relative overflow-hidden bg-slate-100 ${aspectRatio === 'square' ? 'aspect-square' : aspectRatio === 'video' ? 'aspect-video sm:aspect-[16/10]' : ''} ${className}`}>
         <img
@@ -208,7 +212,6 @@ export default function ArticleThumbnail({
   }
 
   // Modern, high-performance Korean typographic editorial thumbnail
-  const catKey = article.categoryId || (article as any).category || 'default';
   const theme = CATEGORY_THEMES[catKey] || CATEGORY_THEMES['default'];
   const IconComponent = theme.icon;
 
@@ -276,11 +279,11 @@ export default function ArticleThumbnail({
           ? 'py-1 sm:py-2 md:py-1 lg:py-2 gap-1 sm:gap-1.5 md:gap-1 lg:gap-1.5' 
           : 'py-4 gap-2.5 sm:gap-3'
       }`}>
-        <div className={`inline-flex items-center justify-center gap-1 sm:gap-1.5 font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 rounded-full border border-emerald-500/30 ${
+        <div className={`inline-flex items-center justify-center gap-1 sm:gap-1.5 font-mono font-bold uppercase tracking-wider ${isOpinion ? 'text-amber-300 bg-amber-950/60 border-amber-500/40' : 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30'} rounded-full border ${
           isVideo ? 'text-[9px] sm:text-xs md:text-[9px] lg:text-xs px-2 py-0.5' : 'text-xs sm:text-sm px-2.5 py-0.5'
         }`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
-          <span>핵심 브리핑</span>
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOpinion ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]'}`} />
+          <span>{isOpinion ? '전문의 오피니언' : '핵심 브리핑'}</span>
         </div>
         <h3 className={`font-serif font-black text-white tracking-tight group-hover:text-emerald-300 transition-colors break-keep drop-shadow-md px-1 ${
           isVideo 
@@ -305,10 +308,10 @@ export default function ArticleThumbnail({
         isVideo ? 'pt-1 sm:pt-1.5 md:pt-1 lg:pt-1.5 text-[9px] sm:text-xs md:text-[9px] lg:text-[10px]' : 'pt-3 text-xs sm:text-sm'
       }`}>
         <span className="font-sans font-extrabold tracking-wider text-white/90 flex items-center gap-1">
-          DAILY PULSE
+          데일리펄스
         </span>
         <span className="font-mono text-slate-300 font-semibold tracking-tight">
-          {theme.subtext}
+          {isOpinion && article.doctorName ? `${article.doctorName} 전문의` : theme.subtext}
         </span>
       </div>
     </div>

@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import AdsenseBanner from '../components/AdsenseBanner';
+import ArticleThumbnail from '../components/ArticleThumbnail';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ArrowLeft, Link as LinkIcon, Share2, Loader2 } from 'lucide-react';
@@ -71,7 +72,7 @@ export default function ArticleDetail() {
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col">
       <Helmet>
-        <title>{article.title} - {seoSettings.siteName || 'DAILY PULSE'}</title>
+        <title>{article.title} - {seoSettings.siteName || '데일리펄스'}</title>
         <meta name="description" content={article.excerpt} />
         <meta property="og:title" content={article.title} />
         <meta property="og:description" content={article.excerpt} />
@@ -104,17 +105,28 @@ export default function ArticleDetail() {
             {renderContentWithLinks(article.excerpt)}
           </div>
 
-          {article.imageUrl && (
-            <div className="mb-10 mx-auto rounded-lg overflow-hidden border border-slate-100 bg-slate-50 max-w-2xl aspect-square">
-              <img src={article.imageUrl} alt="기사 대표 이미지" className="w-full h-full object-cover" />
+          {article.categoryId === 'opinion' ? (
+            <div className="mb-10 mx-auto max-w-2xl">
+              <ArticleThumbnail 
+                article={article} 
+                categoryName="오피니언" 
+                aspectRatio="video" 
+                className="rounded-xl shadow-sm border border-slate-200" 
+              />
             </div>
+          ) : (
+            article.imageUrl && (
+              <div className="mb-10 mx-auto rounded-lg overflow-hidden border border-slate-100 bg-slate-50 max-w-2xl aspect-square">
+                <img src={article.imageUrl} alt="기사 대표 이미지" className="w-full h-full object-cover" />
+              </div>
+            )
           )}
 
           <div className="prose prose-slate prose-lg max-w-none font-sans text-slate-800 leading-[1.8] break-keep">
             {renderContentWithLinks(article.content)}
           </div>
 
-          {article.categoryId === 'opinion' && article.doctorName && (
+          {article.categoryId === 'opinion' && (article.doctorName || article.doctorImage) && (
             <div className="mt-12 bg-slate-50 border border-slate-200 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-6">
               {article.doctorImage ? (
                 <img src={article.doctorImage} alt={article.doctorName} className="w-[128px] h-[128px] object-cover rounded-2xl border border-slate-200 shrink-0 shadow-sm" />

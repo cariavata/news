@@ -78,7 +78,7 @@ export default function AdminCategories() {
         </form>
 
         <div className="flex flex-col gap-3">
-          {categories.map((cat, index) => (
+          {categories.filter(cat => cat.id !== 'cardnews').map((cat, index) => (
             <div key={cat.id} className="flex justify-between items-center bg-slate-50 p-4 border border-slate-200 rounded-md">
               <span className="font-bold text-slate-800">{cat.name}</span>
               <div className="flex items-center gap-2">

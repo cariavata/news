@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { collection, onSnapshot, doc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppStore, mergeWithAutoArticles } from '../store/useArticleStore';
 import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
@@ -43,9 +43,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
       if (cachedStr) {
         const cached = JSON.parse(cachedStr);
         const current = useAppStore.getState();
+        const loadedCats = ((current.categories && current.categories.length > 0) ? current.categories : (cached.categories || fallbackCategories)).filter((c: any) => c.id !== 'cardnews');
         useAppStore.setState({
           articles: (current.articles && current.articles.length > 0) ? current.articles : sanitizeArticles(cached.articles || []),
-          categories: (current.categories && current.categories.length > 0) ? current.categories : (cached.categories || fallbackCategories),
+          categories: loadedCats,
           companyPages: (current.companyPages && current.companyPages.length > 0) ? current.companyPages : (cached.companyPages || fallbackCompanyPages),
           adBanners: (current.adBanners && current.adBanners.length > 0) ? current.adBanners : (cached.adBanners || []),
           seoSettings: cached.seoSettings || current.seoSettings,
@@ -131,14 +132,15 @@ export default function FirebaseSync() {
                 mergedCategories.push(d);
               }
             });
-            mergedCategories.sort((a, b) => {
+            const filteredCategories = mergedCategories.filter((c: any) => c.id !== 'cardnews');
+            filteredCategories.sort((a, b) => {
               const aOrder = a.order !== undefined ? a.order : (orderMap.has(a.id) ? orderMap.get(a.id)! : 999);
               const bOrder = b.order !== undefined ? b.order : (orderMap.has(b.id) ? orderMap.get(b.id)! : 999);
               return aOrder - bOrder;
             });
-            useAppStore.setState({ categories: mergedCategories });
+            useAppStore.setState({ categories: filteredCategories });
           } else {
-            useAppStore.setState({ categories: defaultCats });
+            useAppStore.setState({ categories: defaultCats.filter(c => c.id !== 'cardnews') });
           }
         },
         (error) => {
@@ -215,15 +217,60 @@ export default function FirebaseSync() {
       const unsubSeo = onSnapshot(
         doc(db, 'settings', 'seo'),
         (seoSnap) => {
+          const targetTitle = '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
+          const targetDescription = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!';
+          
           if (seoSnap.exists()) {
             const data = seoSnap.data() as any;
+            let needsUpdate = false;
+            const updated = { ...data };
+
+            if (!updated.siteName || updated.siteName === 'DAILY PULSE' || updated.siteName === '더데일리펄스') {
+              updated.siteName = '데일리펄스';
+              needsUpdate = true;
+            }
+            if (!updated.title || updated.title === 'DAILY PULSE' || updated.title.includes('DAILY PULSE') || updated.title === '더데일리펄스 | 신뢰할 수 있는 보건의료 소식') {
+              updated.title = targetTitle;
+              needsUpdate = true;
+            }
+            if (!updated.description || updated.description.includes('가장 확실한 맥박') || updated.description.includes('정확하고 믿을 수 있는 의료 정보') || updated.description.includes('신선하고 신뢰할 수 있으며')) {
+              updated.description = targetDescription;
+              needsUpdate = true;
+            }
+            if (!updated.ogTitle || updated.ogTitle === 'DAILY PULSE' || updated.ogTitle.includes('DAILY PULSE') || updated.ogTitle === '더데일리펄스 | 신뢰할 수 있는 보건의료 소식') {
+              updated.ogTitle = targetTitle;
+              needsUpdate = true;
+            }
+            if (!updated.ogDescription || updated.ogDescription.includes('가장 확실한 맥박') || updated.ogDescription.includes('정확하고 믿을 수 있는 의료 정보') || updated.ogDescription.includes('신선하고 신뢰할 수 있으며')) {
+              updated.ogDescription = targetDescription;
+              needsUpdate = true;
+            }
+
+            if (needsUpdate) {
+              setDoc(doc(db, 'settings', 'seo'), updated, { merge: true }).catch(() => {});
+            }
+
             useAppStore.setState(state => ({
-              seoSettings: { ...state.seoSettings, ...data },
+              seoSettings: { ...state.seoSettings, ...updated },
               isFirebaseSettingsLoaded: true,
               lastFetchTime: Date.now()
             }));
           } else {
-            useAppStore.setState({ isFirebaseSettingsLoaded: true, lastFetchTime: Date.now() });
+            const defaultSeo = {
+              siteName: '데일리펄스',
+              title: targetTitle,
+              description: targetDescription,
+              ogTitle: targetTitle,
+              ogDescription: targetDescription,
+              homeIntroText: targetDescription,
+              homeIntroEnabled: true
+            };
+            setDoc(doc(db, 'settings', 'seo'), defaultSeo, { merge: true }).catch(() => {});
+            useAppStore.setState(state => ({
+              seoSettings: { ...state.seoSettings, ...defaultSeo },
+              isFirebaseSettingsLoaded: true,
+              lastFetchTime: Date.now()
+            }));
           }
         },
         (error) => {

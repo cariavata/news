@@ -5,7 +5,6 @@ export const fallbackCategories: CategoryInfo[] = [
   { id: 'womens-health', name: '여성건강' },
   { id: 'oriental-med', name: '한의학' },
   { id: 'spine-joint', name: '척추관절' },
-  { id: 'cardnews', name: '카드뉴스' },
   { id: 'opinion', name: '오피니언' }
 ];
 
