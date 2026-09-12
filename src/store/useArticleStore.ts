@@ -53,8 +53,10 @@ export const sanitizeArticles = (articles: any[]): Article[] => {
   return articles.filter(a => a && typeof a.id === 'string' && a.title) as Article[];
 };
 
-export const mergeWithAutoArticles = (rawArticles: Article[]): Article[] => {
-  const autoArticles = getPublishedAutoArticles(180);
+export const mergeWithAutoArticles = (rawArticles: Article[], currentCategories?: CategoryInfo[]): Article[] => {
+  const cats = currentCategories || (typeof useAppStore !== 'undefined' && useAppStore.getState?.()?.categories) || fallbackCategories;
+  const activeIds = (cats || []).map(c => c.id).filter(id => id && id !== 'cardnews');
+  const autoArticles = getPublishedAutoArticles(250, activeIds.length > 0 ? activeIds : undefined);
   const articleMap = new Map<string, Article>();
   const nowTime = Date.now();
 
@@ -211,7 +213,11 @@ export const useAppStore = create<AppState>()(
         const maxOrder = currentCategories.reduce((max, c) => Math.max(max, c.order ?? 999), -1);
         const order = maxOrder === -1 || maxOrder === 999 ? currentCategories.length : maxOrder + 1;
         const obj = { id, name, order };
-        set((state) => ({ categories: [...state.categories, obj] }));
+        set((state) => {
+          const newCats = [...state.categories, obj];
+          const remerged = mergeWithAutoArticles(state.articles, newCats);
+          return { categories: newCats, articles: remerged };
+        });
         try {
           await setDoc(doc(db, 'categories', id), cleanFirestoreData(obj));
         } catch (e) {
@@ -219,10 +225,19 @@ export const useAppStore = create<AppState>()(
         }
       },
       updateCategory: async (id, updates) => {
-        const cleanUpdates = cleanFirestoreData(updates);
-        set((state) => ({
-          categories: state.categories.map(c => c.id === id ? { ...c, ...cleanUpdates } : c)
-        }));
+        const currentCats = useAppStore.getState().categories;
+        const target = currentCats.find(c => c.id === id);
+        const updatedCat: CategoryInfo = {
+          id,
+          name: updates.name ?? target?.name ?? '',
+          order: updates.order !== undefined ? updates.order : target?.order,
+        };
+        const cleanUpdates = cleanFirestoreData(updatedCat);
+        set((state) => {
+          const newCats: CategoryInfo[] = state.categories.map(c => c.id === id ? updatedCat : c);
+          const remerged = mergeWithAutoArticles(state.articles, newCats);
+          return { categories: newCats, articles: remerged };
+        });
         try {
           await setDoc(doc(db, 'categories', id), cleanUpdates, { merge: true });
         } catch (e) {
@@ -230,7 +245,11 @@ export const useAppStore = create<AppState>()(
         }
       },
       deleteCategory: async (id) => {
-        set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
+        set((state) => {
+          const newCats = state.categories.filter(c => c.id !== id);
+          const remerged = mergeWithAutoArticles(state.articles, newCats);
+          return { categories: newCats, articles: remerged };
+        });
         try {
           await deleteDoc(doc(db, 'categories', id));
         } catch (e) {

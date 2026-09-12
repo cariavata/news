@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useAppStore, mergeWithAutoArticles } from '../store/useArticleStore';
+import { useAppStore, mergeWithAutoArticles, cleanFirestoreData } from '../store/useArticleStore';
 import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
 
 enum OperationType {
@@ -128,8 +128,11 @@ export default function FirebaseSync() {
             const categories = catSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
             const mergedCategories = [...categories];
             defaultCats.forEach(d => {
-              if (!mergedCategories.find((c: any) => c.id === d.id)) {
+              const found = mergedCategories.find((c: any) => c.id === d.id);
+              if (!found) {
                 mergedCategories.push(d);
+              } else if (!found.name && d.name) {
+                found.name = d.name;
               }
             });
             const filteredCategories = mergedCategories.filter((c: any) => c.id !== 'cardnews');
@@ -139,8 +142,22 @@ export default function FirebaseSync() {
               return aOrder - bOrder;
             });
             useAppStore.setState({ categories: filteredCategories });
+
+            // Remerge articles with active categories to guarantee auto-published articles for all preview categories (including opinion)
+            const currentArticles = useAppStore.getState().articles;
+            const remerged = mergeWithAutoArticles(currentArticles, filteredCategories);
+            useAppStore.setState({ articles: remerged });
           } else {
-            useAppStore.setState({ categories: defaultCats.filter(c => c.id !== 'cardnews') });
+            const cleanDefaults = defaultCats.filter(c => c.id !== 'cardnews');
+            useAppStore.setState({ categories: cleanDefaults });
+            const currentArticles = useAppStore.getState().articles;
+            const remerged = mergeWithAutoArticles(currentArticles, cleanDefaults);
+            useAppStore.setState({ articles: remerged });
+
+            // Persist default preview categories to Firestore so they are published to DB
+            cleanDefaults.forEach((cat, idx) => {
+              setDoc(doc(db, 'categories', cat.id), cleanFirestoreData({ ...cat, order: idx }), { merge: true }).catch(() => {});
+            });
           }
         },
         (error) => {
@@ -149,7 +166,11 @@ export default function FirebaseSync() {
       );
       unsubscribes.push(unsubCategories);
     } catch (e) {
-      useAppStore.setState({ categories: defaultCats });
+      const cleanDefaults = defaultCats.filter(c => c.id !== 'cardnews');
+      useAppStore.setState({ categories: cleanDefaults });
+      const currentArticles = useAppStore.getState().articles;
+      const remerged = mergeWithAutoArticles(currentArticles, cleanDefaults);
+      useAppStore.setState({ articles: remerged });
     }
 
     // 3. Real-time Company Pages Listener

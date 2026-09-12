@@ -5,6 +5,8 @@ import {
   WOMENS_HEALTH_TOPICS,
   SPINE_JOINT_TOPICS,
   ORIENTAL_MED_TOPICS,
+  OPINION_TOPICS,
+  OPINION_DOCTORS,
   CATEGORY_TOPICS_MAP,
 } from './medicalDatabase';
 import {
@@ -20,6 +22,8 @@ export {
   WOMENS_HEALTH_TOPICS,
   SPINE_JOINT_TOPICS,
   ORIENTAL_MED_TOPICS,
+  OPINION_TOPICS,
+  OPINION_DOCTORS,
   CATEGORY_TOPICS_MAP,
   WOMENS_HEALTH_CASES,
   CHECKUP_CASES,
@@ -33,6 +37,7 @@ export const TARGET_CATEGORIES = [
   { id: 'womens-health', name: '여성건강' },
   { id: 'spine-joint', name: '척추관절' },
   { id: 'oriental-med', name: '한의학' },
+  { id: 'opinion', name: '오피니언' },
 ];
 
 export const CLINICAL_ASPECTS = [
@@ -162,18 +167,19 @@ function cleanTopicTitle(rawTitle: string): string {
 /**
  * Deterministically generates a 100% unique, comprehensive medical article for any date.
  */
-export function generateArticleForDate(dateStr: string): Article {
+export function generateArticleForDate(dateStr: string, activeCategoryOrder?: string[]): Article {
   const dayIndex = getDayIndex(dateStr);
   const safeDayIndex = dayIndex >= 0 ? dayIndex : Math.abs(dayIndex);
   
-  // 1. Category Assignment (Balanced 4-day cycle)
-  const categoryOrder = ['checkup', 'womens-health', 'spine-joint', 'oriental-med'];
+  // 1. Category Assignment (Balanced cycle covering all active preview categories)
+  const defaultCategoryOrder = ['checkup', 'womens-health', 'spine-joint', 'oriental-med', 'opinion'];
+  const categoryOrder = (activeCategoryOrder && activeCategoryOrder.length > 0) ? activeCategoryOrder : defaultCategoryOrder;
   const categoryId = categoryOrder[safeDayIndex % categoryOrder.length];
   const categoryConfig = CATEGORY_TOPICS_MAP[categoryId] || CATEGORY_TOPICS_MAP['checkup'];
   const topicsList = categoryConfig.topics;
   
   // 2. Strict Bijective Radix Mapping for Guaranteed Unique Titles across all days up to 2040+
-  const cycleIndex = Math.floor(safeDayIndex / 4);
+  const cycleIndex = Math.floor(safeDayIndex / categoryOrder.length);
   
   const tIdx = cycleIndex % topicsList.length;
   const rem1 = Math.floor(cycleIndex / topicsList.length);
@@ -197,9 +203,12 @@ export function generateArticleForDate(dateStr: string): Article {
   
   // Strictly sanitize any remaining brackets or double spaces
   generatedTitle = generatedTitle.replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim();
+
+  // 3. Doctor profile selection for Opinion or specialist attribution
+  const isOpinion = categoryId === 'opinion';
+  const doctor = isOpinion ? OPINION_DOCTORS[safeDayIndex % OPINION_DOCTORS.length] : undefined;
   
-  // 3. Category & Condition-Specific Patient Case Selection
-  // Strictly ensures female patients for women's health conditions
+  // 4. Category & Condition-Specific Patient Case Selection
   const isFemaleCondition =
     categoryId === 'womens-health' ||
     /자궁|난소|생리|여성|갱년기|완경|질염|골반염|산후|임신|유방|HPV|다낭성/i.test(generatedTitle + ' ' + topic.tags.join(' '));
@@ -219,21 +228,80 @@ export function generateArticleForDate(dateStr: string): Article {
     patientCase = CHECKUP_CASES[caseIndex];
   }
   
-  // 4. Deterministic Natural Morning Publication Time (KST UTC+9)
+  // 5. Deterministic Natural Morning Publication Time (KST UTC+9)
   const { hour, minute, second } = getDeterministicPublishTime(safeDayIndex);
   const createdAt = `${dateStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}+09:00`;
   
-  // 5. Views and Likes
+  // 6. Views and Likes
   const articleTimestamp = new Date(createdAt).getTime();
   const daysAgo = Math.max(0, Math.floor((Date.now() - articleTimestamp) / (1000 * 60 * 60 * 24)));
   const views = Math.min(18500, 450 + (safeDayIndex * 37) % 350 + Math.max(0, daysAgo * 12));
   const likes = Math.max(15, Math.floor(views * 0.045) + (safeDayIndex % 18));
   
-  // 6. Excerpt
-  const excerpt = `${generatedTitle}. ${topic.shortSummary} ${patientCase.location} ${patientCase.ageGender} 환자의 실제 진료 및 회복 사례를 바탕으로 단계별 임상 로드맵을 제시합니다.`;
-  
-  // 7. Rich Markdown Long-Form Content
-  const markdownContent = `## 📌 오늘의 핵심 의학 브리핑: ${generatedTitle}
+  // 7. Excerpt & Author
+  let excerpt = '';
+  let author = '데일리펄스 의학전문팀';
+  let markdownContent = '';
+
+  if (isOpinion && doctor) {
+    author = `${doctor.name} 전문의 (${doctor.hospitalName})`;
+    excerpt = `[전문의 칼럼] ${doctor.hospitalName} ${doctor.name} 원장이 전하는 임상 인사이트. ${topic.shortSummary} 최신 치료 지침과 환자 맞춤형 예방 가이드를 전합니다.`;
+
+    markdownContent = `## 🩺 [전문의 칼럼] ${doctor.hospitalName} ${doctor.name} 원장의 의학 기고
+### "${generatedTitle}"
+
+${topic.shortSummary}
+
+---
+
+## 👨‍⚕️ 진료실에서 마주하는 환자들의 고민과 딜레마
+
+${doctor.bio}으로서 진료실에서 수많은 환자분들을 상담하며 느끼는 가장 큰 안타까움은, **${cleanBase}**에 대한 단편적인 민간요법이나 잘못된 정보로 인해 치료의 최적 골든타임을 놓치는 경우가 여전히 빈번하다는 점입니다.
+
+${topic.pathology}
+
+---
+
+## 🔬 임상 현장에서 검증된 생물학적 기전과 치료 방향
+
+${topic.mechanism}
+
+### 💡 전문의가 강조하는 핵심 바이오마커 및 검사 기준
+${topic.biomarkers.map((b) => `- **${b}**: 정상 범위를 벗어날 경우 전문의의 즉각적인 개입과 체계적 관리가 요구됩니다.`).join('\n')}
+
+---
+
+## 📋 임상 단계별 권장 솔루션 및 표준 치료 로드맵
+
+${topic.stages.map((st) => `### 📍 ${st.stage}
+- **임상 징후**: ${st.desc}
+- **전문의 권고 치료**: ${st.medicalAction}`).join('\n\n')}
+
+---
+
+## ⚠️ 주치의로서 당부하는 4대 위험 신호 (Red Flags)
+
+아래 증상이 나타날 경우 단순 피로나 일시적 현상으로 치부하지 마시고 즉시 정밀 검사를 받으셔야 합니다.
+
+${topic.redFlags.map((rf, idx) => `${idx + 1}. **${rf}**`).join('\n')}
+
+---
+
+## 💡 진료실 1문 1답: 환자들이 가장 많이 묻는 질문 (Q&A)
+
+${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
+**👨‍⚕️ A. (${doctor.name} 전문의)** ${qa.answer}`).join('\n\n')}
+
+---
+
+## 🏥 맺음말: 환자와 독자 여러분께 드리는 제언
+
+건강한 삶의 기본은 내 몸이 보내는 미세한 신호를 조기에 포착하고, 검증된 의학적 근거를 바탕으로 꾸준히 생활 습관을 바로잡는 데서 시작합니다. **${cleanBase}** 증상으로 고민 중이시라면 주저하지 마시고 가까운 전문 의료진을 찾아 정확한 1:1 상담을 받으시길 권장합니다.
+`;
+  } else {
+    excerpt = `${generatedTitle}. ${topic.shortSummary} ${patientCase.location} ${patientCase.ageGender} 환자의 실제 진료 및 회복 사례를 바탕으로 단계별 임상 로드맵을 제시합니다.`;
+
+    markdownContent = `## 📌 오늘의 핵심 의학 브리핑: ${generatedTitle}
 
 ${topic.shortSummary}
 
@@ -325,6 +393,7 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
 
 모든 질환은 증상이 심화되기 전 **초기 골든타임**을 포착하여 원인 중심의 치료를 진행할 때 비수술적 요법만으로도 가장 빠른 회복을 기대할 수 있습니다. 위 증상이 의심된다면 자가 판단으로 지체하지 마시고 전문의의 1:1 정밀 진료를 받으시길 권장합니다.
 `;
+  }
 
   return {
     id: `auto-${dateStr}`,
@@ -333,7 +402,11 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
     content: markdownContent,
     categoryId,
     imageUrl: '',
-    author: '데일리펄스 의학전문팀',
+    author,
+    doctorName: doctor?.name,
+    doctorSpecialty: doctor?.specialty,
+    hospitalName: doctor?.hospitalName,
+    doctorImage: doctor?.image,
     createdAt,
     isFeatured: false,
     isTrending: safeDayIndex % 5 === 0,
@@ -348,7 +421,7 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
  * Returns all auto-published articles that have ALREADY been published up to current time (KST).
  * Strictly filters out any future articles.
  */
-export function getPublishedAutoArticles(limitCount: number = 365): Article[] {
+export function getPublishedAutoArticles(limitCount: number = 365, activeCategoryIds?: string[]): Article[] {
   const articles: Article[] = [];
   const now = new Date();
   const nowTime = now.getTime();
@@ -369,7 +442,7 @@ export function getPublishedAutoArticles(limitCount: number = 365): Article[] {
     const day = String(currentDate.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
-    const article = generateArticleForDate(dateStr);
+    const article = generateArticleForDate(dateStr, activeCategoryIds);
     const articleTime = new Date(article.createdAt).getTime();
     
     // STRICT FILTER: Only include articles whose scheduled publication timestamp has passed
@@ -387,17 +460,17 @@ export function getPublishedAutoArticles(limitCount: number = 365): Article[] {
 /**
  * Directly returns auto-published articles for a specific category up to current time.
  */
-export function getPublishedAutoArticlesForCategory(categoryId: string, limitCount: number = 100): Article[] {
-  const allArticles = getPublishedAutoArticles(limitCount * 4 + 20);
+export function getPublishedAutoArticlesForCategory(categoryId: string, limitCount: number = 100, activeCategoryIds?: string[]): Article[] {
+  const allArticles = getPublishedAutoArticles(limitCount * 6 + 60, activeCategoryIds);
   return allArticles.filter(a => a.categoryId === categoryId).slice(0, limitCount);
 }
 
 /**
  * Fetches an auto-published article by its auto ID (e.g., auto-2026-08-31).
  */
-export function getAutoArticleById(id: string): Article | undefined {
+export function getAutoArticleById(id: string, activeCategoryIds?: string[]): Article | undefined {
   if (!id || !id.startsWith('auto-')) return undefined;
   const dateStr = id.replace('auto-', '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return undefined;
-  return generateArticleForDate(dateStr);
+  return generateArticleForDate(dateStr, activeCategoryIds);
 }
