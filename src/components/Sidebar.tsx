@@ -79,26 +79,43 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* Admin Custom Ad Banners Slot */}
+      {/* Admin Custom Ad Banners Slot - Horizontal 2 columns for both Mobile & PC (Square 1:1) */}
       {customBanners.length > 0 ? (
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-2 gap-3">
           {customBanners.map(banner => (
-            <a key={banner.id} href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-md border border-slate-200 shadow-sm transition hover:shadow-md">
-              <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
+            <a 
+              key={banner.id} 
+              href={banner.linkUrl || '#'} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="block relative group overflow-hidden rounded-md border border-slate-200 shadow-sm transition hover:shadow-md bg-white aspect-square w-full"
+            >
+              <div className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-sm z-10">
                 광고
               </div>
-              <img src={banner.imageUrl} alt="배너 광고" className="w-full h-auto object-cover transition-transform group-hover:scale-[1.01]" />
+              <img 
+                src={banner.imageUrl} 
+                alt="배너 광고" 
+                className="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" 
+              />
             </a>
           ))}
         </div>
       ) : (
-        <div className="bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200 h-[360px] flex flex-col items-center justify-center text-center p-6 relative group rounded-md">
-          <div className="absolute top-2 right-2 text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-            Banner
-          </div>
-          <LayoutGrid className="w-8 h-8 text-slate-300 mb-4 group-hover:scale-110 transition-transform" />
-          <h4 className="font-sans font-bold tracking-widest uppercase text-sm text-slate-400">배너 광고 스페이스</h4>
-          <p className="text-xs text-slate-400 mt-2 font-sans max-w-[200px] break-keep">관리자 페이지에서 배너 이미지를 등록하세요.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2].map((idx) => (
+            <div 
+              key={idx} 
+              className="bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200 aspect-square w-full flex flex-col items-center justify-center text-center p-3 relative group rounded-md"
+            >
+              <div className="absolute top-1.5 right-1.5 text-slate-400 text-[9px] uppercase font-bold tracking-widest">
+                AD {idx}
+              </div>
+              <LayoutGrid className="w-5 h-5 text-slate-300 mb-2 group-hover:scale-110 transition-transform" />
+              <h4 className="font-sans font-bold tracking-widest uppercase text-xs text-slate-400">배너 광고</h4>
+              <p className="text-[10px] text-slate-400 mt-1 font-sans break-keep">관리자 배너 등록</p>
+            </div>
+          ))}
         </div>
       )}
       

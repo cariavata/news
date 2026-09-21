@@ -19,5 +19,4 @@ export const CATEGORY_TOPICS_MAP: Record<string, { name: string; topics: Medical
   'womens-health': { name: '여성건강', topics: WOMENS_HEALTH_TOPICS },
   'spine-joint': { name: '척추관절', topics: SPINE_JOINT_TOPICS },
   'oriental-med': { name: '한의학', topics: ORIENTAL_MED_TOPICS },
-  'opinion': { name: '오피니언', topics: OPINION_TOPICS },
 };

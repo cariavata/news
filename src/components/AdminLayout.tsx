@@ -55,9 +55,6 @@ export default function AdminLayout() {
             <Link id="nav-new-article" to="/admin/article/new" className={navItemClass('/admin/article/new')}>
               <PlusCircle className="w-4 h-4 shrink-0" /> 새 기사 작성
             </Link>
-            <Link id="nav-opinions" to="/admin/opinions" className={navItemClass('/admin/opinions')}>
-              <FileText className="w-4 h-4 shrink-0" /> 오피니언 관리
-            </Link>
             <Link id="nav-categories" to="/admin/categories" className={navItemClass('/admin/categories')}>
               <LayoutList className="w-4 h-4 shrink-0" /> 카테고리 관리
             </Link>

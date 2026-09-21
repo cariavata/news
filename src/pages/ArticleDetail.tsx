@@ -104,64 +104,40 @@ export default function ArticleDetail() {
             {renderContentWithLinks(article.excerpt)}
           </div>
 
-          {article.categoryId === 'opinion' ? (
-            <div className="mb-10 mx-auto max-w-2xl">
-              <ArticleThumbnail 
-                article={article} 
-                categoryName="오피니언" 
-                aspectRatio="video" 
-                className="rounded-xl shadow-sm border border-slate-200" 
-              />
+          {article.imageUrl && (
+            <div className="mb-10 mx-auto rounded-lg overflow-hidden border border-slate-100 bg-slate-50 max-w-2xl aspect-square">
+              <img src={article.imageUrl} alt="기사 대표 이미지" className="w-full h-full object-cover" />
             </div>
-          ) : (
-            article.imageUrl && (
-              <div className="mb-10 mx-auto rounded-lg overflow-hidden border border-slate-100 bg-slate-50 max-w-2xl aspect-square">
-                <img src={article.imageUrl} alt="기사 대표 이미지" className="w-full h-full object-cover" />
-              </div>
-            )
           )}
 
           <div className="prose prose-slate prose-lg max-w-none font-sans text-slate-800 leading-[1.8] break-keep">
             {renderContentWithLinks(article.content)}
           </div>
 
-          {article.categoryId === 'opinion' && (article.doctorName || article.doctorImage) && (
-            <div className="mt-12 bg-slate-50 border border-slate-200 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-6">
-              {article.doctorImage ? (
-                <img src={article.doctorImage} alt={article.doctorName} className="w-[128px] h-[128px] object-cover rounded-2xl border border-slate-200 shrink-0 shadow-sm" />
-              ) : (
-                <div className="w-[128px] h-[128px] rounded-2xl bg-slate-200 border border-slate-300 flex items-center justify-center shrink-0">
-                  <span className="text-slate-400 font-serif italic text-3xl">D</span>
-                </div>
-              )}
-              <div className="flex-1 text-center sm:text-left">
-                <div className="text-sm font-bold text-emerald-600 tracking-widest mb-1 uppercase">의학 자문 / 칼럼니스트</div>
-                <h3 className="text-xl font-bold text-slate-900 mx-1">{article.doctorName}</h3>
-                <p className="text-slate-600 font-medium mb-1">{article.doctorSpecialty}</p>
-                {article.hospitalName && (
-                  <p className="text-slate-500 text-sm font-medium">{article.hospitalName}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Article Bottom Admin Custom Banner (if registered) */}
+          {/* Article Bottom Admin Custom Banner (if registered) - 2 columns for mobile & PC */}
           {(() => {
-            const customBanner = adBanners?.find(b => b.imageUrl);
-            if (!customBanner) return null;
+            const customBanners = adBanners?.filter(b => b.imageUrl) || [];
+            if (customBanners.length === 0) return null;
             return (
               <div className="mt-12 pt-6 border-t border-slate-200">
                 <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                  <div className="flex items-center justify-between w-full mb-2 px-1 text-[11px] font-semibold text-slate-400">
+                  <div className="flex items-center justify-between w-full mb-3 px-1 text-[11px] font-semibold text-slate-400">
                     <span className="tracking-widest uppercase">SPONSORED / 배너 광고</span>
                   </div>
-                  <a href={customBanner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg group">
-                    <img 
-                      src={customBanner.imageUrl} 
-                      alt="배너 광고" 
-                      className="w-full max-h-48 object-cover rounded-lg transition-transform group-hover:scale-[1.005]" 
-                    />
-                  </a>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto">
+                    {customBanners.map(banner => (
+                      <a key={banner.id} href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative overflow-hidden rounded-lg group border border-slate-200 bg-white aspect-square w-full">
+                        <div className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-sm z-10">
+                          광고
+                        </div>
+                        <img 
+                          src={banner.imageUrl} 
+                          alt="배너 광고" 
+                          className="w-full h-full object-cover rounded-lg transition-transform group-hover:scale-[1.02]" 
+                        />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               </div>
             );

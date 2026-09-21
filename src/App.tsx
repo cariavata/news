@@ -10,7 +10,6 @@ import AdminCategories from './pages/AdminCategories';
 import AdminAds from './pages/AdminAds';
 import AdminSEO from './pages/AdminSEO';
 import AdminAnalytics from './pages/AdminAnalytics';
-import AdminOpinions from './pages/AdminOpinions';
 import ArticleDetail from './pages/ArticleDetail';
 import CategoryView from './pages/CategoryView';
 import SearchResults from './pages/SearchResults';
@@ -87,7 +86,6 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="categories" element={<AdminCategories />} />
-              <Route path="opinions" element={<AdminOpinions />} />
               <Route path="company-pages" element={<AdminCompanyPages />} />
               <Route path="company-pages/new" element={<AdminCompanyPageForm />} />
               <Route path="company-pages/edit/:id" element={<AdminCompanyPageForm />} />

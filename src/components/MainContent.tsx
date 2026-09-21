@@ -2,7 +2,6 @@ import { Clock, User, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
 import { formatRelativeTime } from '../lib/dateUtils';
 import { Link } from 'react-router-dom';
-import OpinionSection from './OpinionSection';
 import ArticleThumbnail from './ArticleThumbnail';
 
 export default function MainContent() {
@@ -63,10 +62,6 @@ export default function MainContent() {
 
       {/* Dynamic Sections by Category */}
       {categories.map(category => {
-        if (category.id === 'opinion') {
-          return <OpinionSection key={category.id} />;
-        }
-
         const categoryArticles = articles
           .filter(a => (a.categoryId === category.id || (a as any).category === category.id))
           .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());

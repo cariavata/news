@@ -4,11 +4,10 @@ import { useAppStore } from '../store/useArticleStore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
-import OpinionSection from '../components/OpinionSection';
 import VisualSection from '../components/VisualSection';
 import ArticleThumbnail from '../components/ArticleThumbnail';
 import { formatRelativeTime } from '../lib/dateUtils';
-import { User, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export default function CategoryView() {
   const { categoryId } = useParams();
@@ -75,26 +74,6 @@ export default function CategoryView() {
                           {article.excerpt}
                         </p>
                         <div className="mt-auto flex flex-col gap-3 pt-4">
-                          {(article.categoryId === 'opinion' || categoryId === 'opinion') && (article.doctorName || article.doctorImage) && (
-                            <div className="flex items-center gap-3 w-fit">
-                              {article.doctorImage ? (
-                                <img src={article.doctorImage} alt={article.doctorName || '의사 사진'} className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm" />
-                              ) : (
-                                <div className="flex w-9 h-9 rounded-full bg-slate-100 items-center justify-center shrink-0 border border-slate-200">
-                                  <User className="w-4 h-4 text-slate-400" />
-                                </div>
-                              )}
-                              <div className="flex flex-col">
-                                {article.doctorName && (
-                                  <div className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                    {article.doctorName}
-                                    {article.doctorSpecialty && <span className="text-emerald-600 font-medium text-xs break-keep">{article.doctorSpecialty}</span>}
-                                  </div>
-                                )}
-                                {article.hospitalName && <div className="text-[11px] sm:text-xs text-slate-500 break-keep">{article.hospitalName}</div>}
-                              </div>
-                            </div>
-                          )}
                           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 font-mono">
                             <span>{article.author}</span>
                             <span>•</span>
@@ -125,11 +104,6 @@ export default function CategoryView() {
                 </div>
               )}
             </div>
-          
-          {/* 하단 전문가 칼럼 / 오피니언 리스트 */}
-          {categoryId !== 'opinion' && (
-            <OpinionSection />
-          )}
         </div>
         
         <div className="col-span-1 lg:col-span-3">

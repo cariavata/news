@@ -177,7 +177,7 @@ export default function ArticleForm() {
               onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
               className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition bg-white"
             >
-              {categories.filter(c => c.id !== 'cardnews').map(c => (
+              {categories.filter(c => c.id !== 'cardnews' && c.id !== 'opinion').map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -193,70 +193,6 @@ export default function ArticleForm() {
               className="border border-slate-300 rounded-md p-3 bg-slate-100 text-slate-500 font-medium outline-none cursor-not-allowed"
             />
           </div>
-
-          {formData.categoryId === 'opinion' && (
-            <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-md p-6">
-              <h3 className="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">오피니언 전문의 정보</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-sm text-slate-700">전문의명</label>
-                  <input 
-                    type="text" 
-                    value={formData.doctorName}
-                    onChange={(e) => setFormData({...formData, doctorName: e.target.value})}
-                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
-                    placeholder="예: 홍길동 원장"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-sm text-slate-700">병원명</label>
-                  <input 
-                    type="text" 
-                    value={formData.hospitalName}
-                    onChange={(e) => setFormData({...formData, hospitalName: e.target.value})}
-                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition"
-                    placeholder="예: 서울ㅇㅇ병원"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-sm text-slate-700">진료과목 (전문의)</label>
-                  <select 
-                    value={formData.doctorSpecialty}
-                    onChange={(e) => setFormData({...formData, doctorSpecialty: e.target.value})}
-                    className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition bg-white"
-                  >
-                    <option value="">선택하세요</option>
-                    <option value="정형외과전문의">정형외과전문의</option>
-                    <option value="마취통증의학과전문의">마취통증의학과전문의</option>
-                    <option value="재활의학과전문의">재활의학과전문의</option>
-                    <option value="한의사">한의사</option>
-                    <option value="산부인과전문의">산부인과전문의</option>
-                    <option value="영상의학과전문의">영상의학과전문의</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2 md:col-span-2">
-                  <label className="font-bold text-sm text-slate-700">전문의 사진 (500x500 권장)</label>
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                    <input 
-                      type="url" 
-                      value={formData.doctorImage}
-                      onChange={(e) => setFormData({...formData, doctorImage: e.target.value})}
-                      className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full"
-                      placeholder="이미지 URL을 입력하세요"
-                    />
-                    <span className="text-slate-400 font-bold shrink-0">OR</span>
-                    <label className="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 px-4 py-3 rounded-md transition font-medium text-sm whitespace-nowrap shrink-0 border border-slate-300">
-                      <span>사진 파일 업로드</span>
-                      <input type="file" className="hidden" accept="image/*" onChange={handleDoctorImageUpload} />
-                    </label>
-                  </div>
-                  {formData.doctorImage && (
-                    <img src={formData.doctorImage} alt="doctor preview" className="mt-2 w-[150px] h-[150px] object-cover rounded-md border border-slate-200" />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <label className="font-bold text-sm text-slate-700">요약문 (Excerpt)</label>

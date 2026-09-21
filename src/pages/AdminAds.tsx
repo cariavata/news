@@ -71,7 +71,7 @@ export default function AdminAds() {
           </h1>
           <p className="text-sm text-slate-500 mt-2 leading-relaxed">
             사이드바 및 기사 상세페이지 하단에 노출되는 자체 배너(스폰서, 제휴, 공지 배너)를 직접 등록하고 관리할 수 있습니다.
-            (외부 구글 광고 없이 관리자가 올린 배너만 깔끔하게 노출됩니다.)
+            모바일과 PC 화면 모두에서 배너 광고가 가로 2개씩 나열되어 노출됩니다.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function AdminAds() {
           <div className="flex flex-col gap-2">
             <label className="font-bold text-sm text-slate-700">
               배너 이미지 등록 <span className="text-red-500">*</span>
-              <span className="font-normal text-xs text-slate-500 ml-2">(사이드바 권장 비율: 1:1 정사각형 또는 세로형 직사각형)</span>
+              <span className="font-normal text-xs text-slate-500 ml-2">(모바일/PC 공통 1:1 정사각형 가로 2열 배치)</span>
             </label>
             
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -100,9 +100,11 @@ export default function AdminAds() {
             </div>
 
             {formData.imageUrl && (
-              <div className="mt-3 border border-slate-200 rounded-md p-3 bg-slate-50 inline-block w-full max-w-[320px]">
-                <p className="text-xs font-bold text-slate-500 mb-2">등록 미리보기</p>
-                <img src={formData.imageUrl} alt="preview" className="w-full h-auto object-cover rounded border border-slate-200" />
+              <div className="mt-3 border border-slate-200 rounded-md p-3 bg-slate-50 inline-block w-full max-w-[260px]">
+                <p className="text-xs font-bold text-slate-500 mb-2">등록 미리보기 (1:1 정사각형)</p>
+                <div className="aspect-square w-full rounded border border-slate-200 bg-white overflow-hidden">
+                  <img src={formData.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                </div>
               </div>
             )}
           </div>

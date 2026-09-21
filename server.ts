@@ -71,11 +71,12 @@ async function startServer() {
     try {
       const firestoreArticles = await getFirestoreCollection("articles");
       if (firestoreArticles && firestoreArticles.length > 0) {
-        firestoreArticles.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-        return res.json(firestoreArticles);
+        const filtered = firestoreArticles.filter((a: any) => a.categoryId !== 'opinion' && a.category !== 'opinion');
+        filtered.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        return res.json(filtered);
       }
       if (isMongoConnected()) {
-        const articles = await (ArticleModel as any).find().sort({ createdAt: -1 }).lean().exec();
+        const articles = await (ArticleModel as any).find({ categoryId: { $ne: 'opinion' }, category: { $ne: 'opinion' } }).sort({ createdAt: -1 }).lean().exec();
         if (articles && articles.length > 0) {
           return res.json(articles.map((a: any) => ({
             ...a,
@@ -181,12 +182,27 @@ async function startServer() {
   app.get("/api/categories", async (req, res) => {
     try {
       const cats = await getFirestoreCollection("categories");
-      if (cats && cats.length > 0) return res.json(cats);
+      if (cats && cats.length > 0) return res.json(cats.filter((c: any) => c.id !== 'opinion'));
       if (isMongoConnected()) {
-        const categories = await (CategoryModel as any).find().lean().exec();
-        if (categories && categories.length > 0) return res.json(categories);
+        const categories = await (CategoryModel as any).find({ _id: { $ne: 'opinion' } }).lean().exec();
+        if (categories && categories.length > 0) return res.json(categories.filter((c: any) => c.id !== 'opinion'));
       }
-      res.json(defaultCategories);
+      res.json(defaultCategories.filter(c => c.id !== 'opinion'));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/categories/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      await deleteFirestoreDocument("categories", id);
+      if (isMongoConnected()) {
+        try {
+          await (CategoryModel as any).findByIdAndDelete(id);
+        } catch (e) {}
+      }
+      res.json({ success: true, id });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -237,6 +253,52 @@ async function startServer() {
         } catch (e) {}
       }
       res.json(updated || { ...req.body, id });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Ad Banners API
+  const defaultAdBanners = [
+    {
+      id: "ad-banner-1",
+      imageUrl: "/banners/banner_spine_joint.svg",
+      linkUrl: "/inquiry",
+      type: "image"
+    },
+    {
+      id: "ad-banner-2",
+      imageUrl: "/banners/banner_health_checkup.svg",
+      linkUrl: "/inquiry",
+      type: "image"
+    }
+  ];
+
+  app.get("/api/ad-banners", async (req, res) => {
+    try {
+      const banners = await getFirestoreCollection("adBanners");
+      if (banners && banners.length > 0) return res.json(banners);
+      res.json(defaultAdBanners);
+    } catch (error: any) {
+      res.json(defaultAdBanners);
+    }
+  });
+
+  app.post("/api/ad-banners", async (req, res) => {
+    try {
+      const id = req.body.id || `ad_${Date.now()}`;
+      await setFirestoreDocument("adBanners", id, { ...req.body, id, createdAt: new Date().toISOString() });
+      res.status(201).json({ ...req.body, id });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/ad-banners/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      await deleteFirestoreDocument("adBanners", id);
+      res.json({ success: true, id });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -308,8 +370,7 @@ async function startServer() {
     { id: 'womens-health', name: '여성건강' },
     { id: 'oriental-med', name: '한의학' },
     { id: 'spine-joint', name: '척추관절' },
-    { id: 'cardnews', name: '카드뉴스' },
-    { id: 'opinion', name: '오피니언' }
+    { id: 'cardnews', name: '카드뉴스' }
   ];
 
   const defaultCompanyPages = [
@@ -325,9 +386,9 @@ async function startServer() {
       const articles = await getFirestoreCollection("articles");
       if (articles && articles.length > 0) {
         list = articles
-          .filter((a: any) => a && a.id && !a.id.startsWith("fb-") && a.id !== "1" && a.id !== "2" && a.id !== "3");
+          .filter((a: any) => a && a.id && !a.id.startsWith("fb-") && a.id !== "1" && a.id !== "2" && a.id !== "3" && a.categoryId !== "opinion" && a.category !== "opinion");
       } else if (isMongoConnected()) {
-        const mArticles = await (ArticleModel as any).find().sort({ createdAt: -1 }).limit(300).lean().exec();
+        const mArticles = await (ArticleModel as any).find({ categoryId: { $ne: 'opinion' }, category: { $ne: 'opinion' } }).sort({ createdAt: -1 }).limit(300).lean().exec();
         if (mArticles && mArticles.length > 0) {
           list = mArticles.map((a: any) => ({
             ...a,
@@ -344,7 +405,7 @@ async function startServer() {
       const autoArticles = getPublishedAutoArticles(250);
       const existingIds = new Set(list.map((a) => a.id));
       for (const autoArt of autoArticles) {
-        if (!existingIds.has(autoArt.id)) {
+        if (!existingIds.has(autoArt.id) && autoArt.categoryId !== 'opinion') {
           list.push(autoArt);
           existingIds.add(autoArt.id);
         }
@@ -360,15 +421,15 @@ async function startServer() {
     if (id && id.startsWith("auto-")) {
       try {
         const autoArt = getAutoArticleById(id);
-        if (autoArt) return autoArt;
+        if (autoArt && autoArt.categoryId !== 'opinion') return autoArt;
       } catch (e) {}
     }
     try {
       const doc = await getFirestoreDocument("articles", id);
-      if (doc) return doc;
+      if (doc && doc.categoryId !== 'opinion') return doc;
       if (isMongoConnected()) {
         const mArticle = await (ArticleModel as any).findById(id).lean().exec();
-        if (mArticle) {
+        if (mArticle && mArticle.categoryId !== 'opinion') {
           return {
             ...(mArticle as any),
             id: (mArticle as any)._id.toString()
@@ -398,15 +459,15 @@ async function startServer() {
   const getCategories = async () => {
     try {
       const categories = await getFirestoreCollection("categories");
-      if (categories && categories.length > 0) return categories;
+      if (categories && categories.length > 0) return categories.filter((c: any) => c.id !== 'opinion');
       if (isMongoConnected()) {
-        const mCategories = await (CategoryModel as any).find().lean().exec();
-        if (mCategories && mCategories.length > 0) return mCategories as any[];
+        const mCategories = await (CategoryModel as any).find({ _id: { $ne: 'opinion' } }).lean().exec();
+        if (mCategories && mCategories.length > 0) return (mCategories as any[]).filter((c: any) => c.id !== 'opinion');
       }
     } catch (e) {
       console.error("Error fetching categories:", e);
     }
-    return defaultCategories;
+    return defaultCategories.filter(c => c.id !== 'opinion');
   };
 
   const toRfc822 = (dateStr?: string) => {

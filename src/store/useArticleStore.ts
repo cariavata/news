@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { Article, CategoryInfo, AdBanner, SeoSettings, CompanyPage, Inquiry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
+import { fallbackCategories, fallbackCompanyPages, fallbackAdBanners } from '../data/fallbackData';
 import { getPublishedAutoArticles, getAutoArticleById } from '../lib/autoPublishEngine';
 import { doc, setDoc, deleteDoc, getDocs, collection, getDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -50,19 +50,19 @@ export const cleanFirestoreData = (data: Record<string, any>): Record<string, an
 
 export const sanitizeArticles = (articles: any[]): Article[] => {
   if (!Array.isArray(articles)) return [];
-  return articles.filter(a => a && typeof a.id === 'string' && a.title) as Article[];
+  return articles.filter(a => a && typeof a.id === 'string' && a.title && a.categoryId !== 'opinion' && (a as any).category !== 'opinion') as Article[];
 };
 
 export const mergeWithAutoArticles = (rawArticles: Article[], currentCategories?: CategoryInfo[]): Article[] => {
   const cats = currentCategories || (typeof useAppStore !== 'undefined' && useAppStore.getState?.()?.categories) || fallbackCategories;
-  const activeIds = (cats || []).map(c => c.id).filter(id => id && id !== 'cardnews');
+  const activeIds = (cats || []).map(c => c.id).filter(id => id && id !== 'cardnews' && id !== 'opinion');
   const autoArticles = getPublishedAutoArticles(250, activeIds.length > 0 ? activeIds : undefined);
   const articleMap = new Map<string, Article>();
   const nowTime = Date.now();
 
   // 1. Add auto-published articles (only those whose publish time has arrived)
   autoArticles.forEach(a => {
-    if (new Date(a.createdAt || 0).getTime() <= nowTime) {
+    if (new Date(a.createdAt || 0).getTime() <= nowTime && a.categoryId !== 'opinion') {
       articleMap.set(a.id, a);
     }
   });
@@ -70,7 +70,7 @@ export const mergeWithAutoArticles = (rawArticles: Article[], currentCategories?
   // 2. User-authored articles override or blend in (skip stale stored auto- articles to use fresh engine)
   if (Array.isArray(rawArticles)) {
     rawArticles.forEach(a => {
-      if (a && a.id && a.title && !a.id.startsWith('auto-')) {
+      if (a && a.id && a.title && !a.id.startsWith('auto-') && a.categoryId !== 'opinion' && (a as any).category !== 'opinion') {
         articleMap.set(a.id, a);
       }
     });
@@ -101,7 +101,7 @@ export const ensureFallbackContent = () => {
 
   useAppStore.setState({
     articles: mergedArticles,
-    categories: (state.categories && state.categories.length > 0 ? state.categories : fallbackCategories).filter(c => c.id !== 'cardnews'),
+    categories: (state.categories && state.categories.length > 0 ? state.categories : fallbackCategories).filter(c => c.id !== 'cardnews' && c.id !== 'opinion'),
     companyPages: state.companyPages && state.companyPages.length > 0 ? state.companyPages : fallbackCompanyPages,
     isFirebaseSettingsLoaded: true,
     hasFetchedInitialArticles: true
@@ -206,7 +206,7 @@ export const useAppStore = create<AppState>()(
       login: () => set({ isAuthenticated: true }),
       logout: () => set({ isAuthenticated: false }),
 
-      categories: fallbackCategories,
+      categories: fallbackCategories.filter(c => c.id !== 'opinion'),
       addCategory: async (name) => {
         const id = uuidv4();
         const currentCategories = useAppStore.getState().categories;
@@ -418,7 +418,7 @@ export const useAppStore = create<AppState>()(
         }));
       },
 
-      adBanners: [],
+      adBanners: fallbackAdBanners,
       addAdBanner: async (bannerData) => {
         const id = uuidv4();
         const obj = { ...bannerData, id };
@@ -687,6 +687,10 @@ export const useAppStore = create<AppState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.articles = sanitizeArticles(state.articles || []);
+          state.categories = (state.categories || []).filter(c => c.id !== 'opinion' && c.id !== 'cardnews');
+          if (!state.adBanners || state.adBanners.length === 0) {
+            state.adBanners = fallbackAdBanners;
+          }
           state.hasFetchedInitialArticles = true;
           state.isFirebaseSettingsLoaded = true;
           // Clear any remaining legacy seed/mock data (detected by > 100 entries or mock keywords)

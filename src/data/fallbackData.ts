@@ -1,11 +1,25 @@
-import { Article, CategoryInfo, CompanyPage } from '../types';
+import { Article, CategoryInfo, CompanyPage, AdBanner } from '../types';
 
 export const fallbackCategories: CategoryInfo[] = [
   { id: 'checkup', name: '건강검진' },
   { id: 'womens-health', name: '여성건강' },
   { id: 'oriental-med', name: '한의학' },
-  { id: 'spine-joint', name: '척추관절' },
-  { id: 'opinion', name: '오피니언' }
+  { id: 'spine-joint', name: '척추관절' }
+];
+
+export const fallbackAdBanners: AdBanner[] = [
+  {
+    id: 'ad-banner-1',
+    imageUrl: '/banners/banner_spine_joint.svg',
+    linkUrl: '/inquiry',
+    type: 'image'
+  },
+  {
+    id: 'ad-banner-2',
+    imageUrl: '/banners/banner_health_checkup.svg',
+    linkUrl: '/inquiry',
+    type: 'image'
+  }
 ];
 
 export const fallbackCompanyPages: CompanyPage[] = [

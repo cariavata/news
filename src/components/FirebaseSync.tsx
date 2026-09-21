@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppStore, mergeWithAutoArticles, cleanFirestoreData } from '../store/useArticleStore';
-import { fallbackCategories, fallbackCompanyPages } from '../data/fallbackData';
+import { fallbackCategories, fallbackCompanyPages, fallbackAdBanners } from '../data/fallbackData';
 
 enum OperationType {
   CREATE = 'create',
@@ -48,7 +48,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
           articles: (current.articles && current.articles.length > 0) ? current.articles : sanitizeArticles(cached.articles || []),
           categories: loadedCats,
           companyPages: (current.companyPages && current.companyPages.length > 0) ? current.companyPages : (cached.companyPages || fallbackCompanyPages),
-          adBanners: (current.adBanners && current.adBanners.length > 0) ? current.adBanners : (cached.adBanners || []),
+          adBanners: (current.adBanners && current.adBanners.length > 0) ? current.adBanners : (cached.adBanners && cached.adBanners.length > 0 ? cached.adBanners : fallbackAdBanners),
           seoSettings: cached.seoSettings || current.seoSettings,
           hasFetchedInitialArticles: true,
           isFirebaseSettingsLoaded: true
@@ -64,6 +64,9 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     }
     if (!current.companyPages || current.companyPages.length === 0) {
       useAppStore.setState({ companyPages: fallbackCompanyPages });
+    }
+    if (!current.adBanners || current.adBanners.length === 0) {
+      useAppStore.setState({ adBanners: fallbackAdBanners });
     }
 
     useAppStore.setState({ hasFetchedInitialArticles: true });
@@ -88,6 +91,13 @@ export default function FirebaseSync() {
         collection(db, 'articles'),
         (snapshot) => {
           if (!snapshot.empty) {
+            // Auto-clean any legacy opinion articles in Firestore
+            snapshot.docs.forEach(d => {
+              const data = d.data();
+              if (data.categoryId === 'opinion' || data.category === 'opinion') {
+                deleteDoc(doc(db, 'articles', d.id)).catch(() => {});
+              }
+            });
             const raw = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
             const fetchedArticles = sanitizeArticles(raw);
             const merged = mergeWithAutoArticles(fetchedArticles);
@@ -125,9 +135,18 @@ export default function FirebaseSync() {
         collection(db, 'categories'),
         (catSnap) => {
           if (!catSnap.empty) {
-            const categories = catSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            // Auto-clean any legacy opinion category in Firestore
+            catSnap.docs.forEach(d => {
+              if (d.id === 'opinion') {
+                deleteDoc(doc(db, 'categories', 'opinion')).catch(() => {});
+              }
+            });
+
+            const categories = catSnap.docs
+              .filter(d => d.id !== 'opinion')
+              .map(doc => ({ ...doc.data(), id: doc.id }) as any);
             const mergedCategories = [...categories];
-            defaultCats.forEach(d => {
+            defaultCats.filter(d => d.id !== 'opinion').forEach(d => {
               const found = mergedCategories.find((c: any) => c.id === d.id);
               if (!found) {
                 mergedCategories.push(d);
@@ -135,7 +154,7 @@ export default function FirebaseSync() {
                 found.name = d.name;
               }
             });
-            const filteredCategories = mergedCategories.filter((c: any) => c.id !== 'cardnews');
+            const filteredCategories = mergedCategories.filter((c: any) => c.id !== 'cardnews' && c.id !== 'opinion');
             filteredCategories.sort((a, b) => {
               const aOrder = a.order !== undefined ? a.order : (orderMap.has(a.id) ? orderMap.get(a.id)! : 999);
               const bOrder = b.order !== undefined ? b.order : (orderMap.has(b.id) ? orderMap.get(b.id)! : 999);
@@ -143,12 +162,11 @@ export default function FirebaseSync() {
             });
             useAppStore.setState({ categories: filteredCategories });
 
-            // Remerge articles with active categories to guarantee auto-published articles for all preview categories (including opinion)
             const currentArticles = useAppStore.getState().articles;
             const remerged = mergeWithAutoArticles(currentArticles, filteredCategories);
             useAppStore.setState({ articles: remerged });
           } else {
-            const cleanDefaults = defaultCats.filter(c => c.id !== 'cardnews');
+            const cleanDefaults = defaultCats.filter(c => c.id !== 'cardnews' && c.id !== 'opinion');
             useAppStore.setState({ categories: cleanDefaults });
             const currentArticles = useAppStore.getState().articles;
             const remerged = mergeWithAutoArticles(currentArticles, cleanDefaults);
@@ -166,7 +184,7 @@ export default function FirebaseSync() {
       );
       unsubscribes.push(unsubCategories);
     } catch (e) {
-      const cleanDefaults = defaultCats.filter(c => c.id !== 'cardnews');
+      const cleanDefaults = defaultCats.filter(c => c.id !== 'cardnews' && c.id !== 'opinion');
       useAppStore.setState({ categories: cleanDefaults });
       const currentArticles = useAppStore.getState().articles;
       const remerged = mergeWithAutoArticles(currentArticles, cleanDefaults);
@@ -206,15 +224,28 @@ export default function FirebaseSync() {
       const unsubAds = onSnapshot(
         collection(db, 'adBanners'),
         (adSnap) => {
-          const adBanners = adSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
-          useAppStore.setState({ adBanners });
+          if (!adSnap.empty) {
+            const adBanners = adSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }) as any);
+            useAppStore.setState({ adBanners });
+          } else {
+            useAppStore.setState({ adBanners: fallbackAdBanners });
+          }
         },
         (error) => {
           handleFirestoreError(error, OperationType.LIST, 'adBanners');
+          const currentBanners = useAppStore.getState().adBanners;
+          if (!currentBanners || currentBanners.length === 0) {
+            useAppStore.setState({ adBanners: fallbackAdBanners });
+          }
         }
       );
       unsubscribes.push(unsubAds);
-    } catch (e) {}
+    } catch (e) {
+      const currentBanners = useAppStore.getState().adBanners;
+      if (!currentBanners || currentBanners.length === 0) {
+        useAppStore.setState({ adBanners: fallbackAdBanners });
+      }
+    }
 
     // 5. Real-time Search Keywords Listener
     try {
