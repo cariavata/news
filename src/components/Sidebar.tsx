@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { TrendingUp, LayoutGrid, Search } from 'lucide-react';
 import { useAppStore } from '../store/useArticleStore';
 import { Link, useNavigate } from 'react-router-dom';
-import AdsenseBanner from './AdsenseBanner';
 
 export default function Sidebar() {
-  const { articles, adBanners, seoSettings } = useAppStore();
+  const { articles, adBanners } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
@@ -23,6 +22,8 @@ export default function Sidebar() {
   const trending = [...articles]
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, 5);
+
+  const customBanners = adBanners.filter(b => b.imageUrl);
 
   return (
     <aside className="w-full flex flex-col gap-10">
@@ -78,48 +79,26 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* Ad Banners Slot */}
-      {adBanners.length > 0 ? (
+      {/* Admin Custom Ad Banners Slot */}
+      {customBanners.length > 0 ? (
         <div className="flex flex-col gap-6">
-          {adBanners.map(banner => {
-            const adClient = seoSettings.googleAdsenseClient || "ca-pub-6799823492487492";
-            if (banner.type === 'adsense') {
-              return (
-                <div key={banner.id} className="block relative w-full overflow-hidden bg-slate-50 min-h-[250px] border border-slate-200 rounded-md">
-                  <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10 pointer-events-none">
-                    광고
-                  </div>
-                  <AdsenseBanner
-                    client={adClient}
-                    slot={banner.adsenseSlot!}
-                  />
-                </div>
-              );
-            }
-            return (
-              <a key={banner.id} href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group">
-                <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
-                  광고
-                </div>
-                {banner.imageUrl ? (
-                 <img src={banner.imageUrl} alt="Advertisement" className="w-full h-auto object-cover border border-slate-200" />
-                ) : (
-                  <div className="w-full h-64 bg-slate-100 flex items-center justify-center border border-slate-200">
-                    <span className="text-slate-400 text-sm font-bold">이미지 없음</span>
-                  </div>
-                )}
-              </a>
-            );
-          })}
+          {customBanners.map(banner => (
+            <a key={banner.id} href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-md border border-slate-200 shadow-sm transition hover:shadow-md">
+              <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm z-10">
+                광고
+              </div>
+              <img src={banner.imageUrl} alt="배너 광고" className="w-full h-auto object-cover transition-transform group-hover:scale-[1.01]" />
+            </a>
+          ))}
         </div>
       ) : (
-        <div className="bg-slate-100 hover:bg-slate-200 transition-colors border border-slate-200 h-[400px] flex flex-col items-center justify-center text-center p-6 relative group cursor-pointer">
+        <div className="bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200 h-[360px] flex flex-col items-center justify-center text-center p-6 relative group rounded-md">
           <div className="absolute top-2 right-2 text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-            Advertisement
+            Banner
           </div>
           <LayoutGrid className="w-8 h-8 text-slate-300 mb-4 group-hover:scale-110 transition-transform" />
-          <h4 className="font-sans font-bold tracking-widest uppercase text-sm text-slate-400">프리미엄 광고 스페이스</h4>
-          <p className="text-xs text-slate-400 mt-2 font-sans max-w-[200px] break-keep">관리자 페이지에서 광고 이미지를 설정하세요.</p>
+          <h4 className="font-sans font-bold tracking-widest uppercase text-sm text-slate-400">배너 광고 스페이스</h4>
+          <p className="text-xs text-slate-400 mt-2 font-sans max-w-[200px] break-keep">관리자 페이지에서 배너 이미지를 등록하세요.</p>
         </div>
       )}
       

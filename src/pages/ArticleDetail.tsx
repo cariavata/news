@@ -5,7 +5,6 @@ import { useAppStore } from '../store/useArticleStore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
-import AdsenseBanner from '../components/AdsenseBanner';
 import ArticleThumbnail from '../components/ArticleThumbnail';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -146,26 +145,27 @@ export default function ArticleDetail() {
             </div>
           )}
 
-          {/* Article Bottom Google AdSense Unit */}
-          <div className="mt-12 pt-6 border-t border-slate-200">
-            {(() => {
-              const adsenseBanner = adBanners?.find(b => b.type === 'adsense');
-              const adClient = seoSettings.googleAdsenseClient || "ca-pub-6799823492487492";
-              const adSlot = adsenseBanner?.adsenseSlot || "6799823492";
-
-              return (
-                <div className="w-full bg-slate-50/60 border border-slate-200/80 rounded-xl p-3 sm:p-4 relative overflow-hidden text-center min-h-[140px] flex flex-col items-center justify-center">
+          {/* Article Bottom Admin Custom Banner (if registered) */}
+          {(() => {
+            const customBanner = adBanners?.find(b => b.imageUrl);
+            if (!customBanner) return null;
+            return (
+              <div className="mt-12 pt-6 border-t border-slate-200">
+                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
                   <div className="flex items-center justify-between w-full mb-2 px-1 text-[11px] font-semibold text-slate-400">
-                    <span className="tracking-widest uppercase">ADVERTISEMENT / 광고</span>
-                    <span className="text-[10px] text-slate-400 font-mono">Google AdSense</span>
+                    <span className="tracking-widest uppercase">SPONSORED / 배너 광고</span>
                   </div>
-                  <div className="w-full flex-1 flex items-center justify-center">
-                    <AdsenseBanner client={adClient} slot={adSlot} responsive={true} format="auto" />
-                  </div>
+                  <a href={customBanner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg group">
+                    <img 
+                      src={customBanner.imageUrl} 
+                      alt="배너 광고" 
+                      className="w-full max-h-48 object-cover rounded-lg transition-transform group-hover:scale-[1.005]" 
+                    />
+                  </a>
                 </div>
-              );
-            })()}
-          </div>
+              </div>
+            );
+          })()}
 
           <div className="mt-16 pt-8 border-t border-slate-200 flex justify-between items-center">
             <button onClick={() => navigate(article.categoryId ? `/category/${article.categoryId}` : '/')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition">

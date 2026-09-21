@@ -239,7 +239,7 @@ export default function FirebaseSync() {
         doc(db, 'settings', 'seo'),
         (seoSnap) => {
           const targetTitle = '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
-          const targetDescription = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!';
+          const targetDescription = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.';
           
           if (seoSnap.exists()) {
             const data = seoSnap.data() as any;
@@ -254,7 +254,7 @@ export default function FirebaseSync() {
               updated.title = targetTitle;
               needsUpdate = true;
             }
-            if (!updated.description || updated.description.includes('가장 확실한 맥박') || updated.description.includes('정확하고 믿을 수 있는 의료 정보') || updated.description.includes('신선하고 신뢰할 수 있으며')) {
+            if (!updated.description || updated.description.includes('가장 확실한 맥박') || updated.description.includes('정확하고 믿을 수 있는 의료 정보') || updated.description.includes('신선하고 신뢰할 수 있으며') || updated.description.includes('함께하세요')) {
               updated.description = targetDescription;
               needsUpdate = true;
             }
@@ -262,8 +262,12 @@ export default function FirebaseSync() {
               updated.ogTitle = targetTitle;
               needsUpdate = true;
             }
-            if (!updated.ogDescription || updated.ogDescription.includes('가장 확실한 맥박') || updated.ogDescription.includes('정확하고 믿을 수 있는 의료 정보') || updated.ogDescription.includes('신선하고 신뢰할 수 있으며')) {
+            if (!updated.ogDescription || updated.ogDescription.includes('가장 확실한 맥박') || updated.ogDescription.includes('정확하고 믿을 수 있는 의료 정보') || updated.ogDescription.includes('신선하고 신뢰할 수 있으며') || updated.ogDescription.includes('함께하세요')) {
               updated.ogDescription = targetDescription;
+              needsUpdate = true;
+            }
+            if (!updated.homeIntroText || updated.homeIntroText.includes('가장 확실한 맥박') || updated.homeIntroText.includes('정확하고 믿을 수 있는 의료 정보') || updated.homeIntroText.includes('함께하세요')) {
+              updated.homeIntroText = targetDescription;
               needsUpdate = true;
             }
 

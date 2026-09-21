@@ -69,16 +69,7 @@ export default function App() {
         {googleToken && (
           <meta name="google-site-verification" content={googleToken} />
         )}
-        {seoSettings.googleAdsenseClient && (
-          <meta name="google-adsense-account" content={seoSettings.googleAdsenseClient} />
-        )}
       </Helmet>
-      
-      {seoSettings.googleAdsenseClient && (
-        <Helmet>
-          <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${seoSettings.googleAdsenseClient}`} crossOrigin="anonymous"></script>
-        </Helmet>
-      )}
 
       <BrowserRouter>
         <ScrollToTop />

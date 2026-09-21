@@ -31,16 +31,16 @@ export default function AdminSEO() {
 
   useEffect(() => {
     const targetTitle = '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
-    const targetDesc = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!';
+    const targetDesc = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.';
 
     setFormData({
       ...seoSettings,
       siteName: seoSettings.siteName || '데일리펄스',
       title: (!seoSettings.title || seoSettings.title.includes('DAILY PULSE') || seoSettings.title.includes('더데일리펄스')) ? targetTitle : seoSettings.title,
-      description: (!seoSettings.description || seoSettings.description.includes('가장 확실한 맥박') || seoSettings.description.includes('정확하고 믿을 수 있는 의료 정보') || seoSettings.description.includes('신선하고 신뢰할 수 있으며')) ? targetDesc : seoSettings.description,
+      description: (!seoSettings.description || seoSettings.description.includes('가장 확실한 맥박') || seoSettings.description.includes('정확하고 믿을 수 있는 의료 정보') || seoSettings.description.includes('신선하고 신뢰할 수 있으며') || seoSettings.description.includes('함께하세요')) ? targetDesc : seoSettings.description,
       ogTitle: (!seoSettings.ogTitle || seoSettings.ogTitle.includes('DAILY PULSE') || seoSettings.ogTitle.includes('더데일리펄스')) ? targetTitle : seoSettings.ogTitle,
-      ogDescription: (!seoSettings.ogDescription || seoSettings.ogDescription.includes('가장 확실한 맥박') || seoSettings.ogDescription.includes('정확하고 믿을 수 있는 의료 정보') || seoSettings.ogDescription.includes('신선하고 신뢰할 수 있으며')) ? targetDesc : seoSettings.ogDescription,
-      homeIntroText: seoSettings.homeIntroText || targetDesc,
+      ogDescription: (!seoSettings.ogDescription || seoSettings.ogDescription.includes('가장 확실한 맥박') || seoSettings.ogDescription.includes('정확하고 믿을 수 있는 의료 정보') || seoSettings.ogDescription.includes('신선하고 신뢰할 수 있으며') || seoSettings.ogDescription.includes('함께하세요')) ? targetDesc : seoSettings.ogDescription,
+      homeIntroText: (!seoSettings.homeIntroText || seoSettings.homeIntroText.includes('함께하세요')) ? targetDesc : (seoSettings.homeIntroText || targetDesc),
       homeIntroEnabled: seoSettings.homeIntroEnabled !== false,
       naverSiteVerification: seoSettings.naverSiteVerification || 'd060eade5473b610c0645fe41bbce092e0917fad',
       googleSiteVerification: seoSettings.googleSiteVerification || '57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68',
@@ -94,7 +94,7 @@ export default function AdminSEO() {
   const handleAutoGenerateRss = () => {
     const domain = getBaseDomain();
     const siteTitle = formData.title || '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
-    const siteDesc = formData.description || '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!';
+    const siteDesc = formData.description || '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.';
     const nowRfc = new Date().toUTCString();
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n`;
@@ -400,17 +400,6 @@ export default function AdminSEO() {
                 placeholder='<meta name="google-site-verification" content="..." />'
               />
               <span className="text-xs text-slate-500 block mt-2 pl-1">구글 서치콘솔(Search Console)에서 제공하는 메타태그 전체 또는 content 값을 입력하세요.</span>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">구글 애드센스 클라이언트 ID (ca-pub-xxx)</label>
-              <input 
-                type="text" 
-                value={formData.googleAdsenseClient}
-                onChange={(e) => setFormData({...formData, googleAdsenseClient: e.target.value})}
-                className="w-full border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none font-mono text-sm"
-                placeholder="ca-pub-0000000000000000"
-              />
             </div>
           </div>
         </section>

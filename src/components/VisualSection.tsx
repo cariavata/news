@@ -103,7 +103,7 @@ export default function VisualSection({
   const { seoSettings } = useAppStore();
   
   const isEnabled = seoSettings.homeIntroEnabled !== false;
-  const defaultIntro = '정형외과부터 산부인과, 필수 건강검진까지. 정확하고 믿을 수 있는 의료 정보를 전달합니다.';
+  const defaultIntro = '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.';
   const introText = title || seoSettings.homeIntroText || defaultIntro;
 
   const [currentIndex, setCurrentIndex] = useState(0);

@@ -508,7 +508,7 @@ export const useAppStore = create<AppState>()(
         logoUrl: "",
         customHeadTags: "",
         title: "데일리펄스 | 신뢰할 수 있는 보건의료 소식",
-        description: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
+        description: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.",
         keywords: "건강, 의학, 보건, 의료, 건강검진, 여성건강, 한의학, 척추관절, 오피니언, 데일리펄스",
         robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://the-dailypulse.netlify.app/sitemap.xml",
         adsTxt: "google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0",
@@ -516,9 +516,9 @@ export const useAppStore = create<AppState>()(
         googleSiteVerification: "57akzenSl71_GebyFfSJXrpeazAyphH49PDhUGOWR68",
         googleAdsenseClient: "ca-pub-6799823492487492",
         ogTitle: "데일리펄스 | 신뢰할 수 있는 보건의료 소식",
-        ogDescription: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
+        ogDescription: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.",
         ogImage: "",
-        homeIntroText: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다. 매일 아침, 신뢰할 수 있는 건강 소식으로 여러분의 활기찬 하루를 열어드리겠습니다. 지금 바로 데일리 펄스와 함께하세요!",
+        homeIntroText: "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.",
         homeIntroEnabled: true
       },
       updateSeoSettings: async (settings) => {

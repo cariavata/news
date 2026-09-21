@@ -227,6 +227,17 @@ export function generateArticleForDate(dateStr: string, activeCategoryOrder?: st
     const caseIndex = (safeDayIndex * 7 + 3) % CHECKUP_CASES.length;
     patientCase = CHECKUP_CASES[caseIndex];
   }
+
+  // Derive regional SEO keywords (e.g., '서울 강남구', '경기 분당', '인천 송도')
+  const locParts = patientCase.location.split(' ');
+  const cleanRegion = locParts.length > 1 ? `${locParts[0]} ${locParts[1]}` : patientCase.location;
+  const regionalSeoTags = [
+    `${cleanRegion} ${cleanBase}`,
+    `${cleanRegion} ${cleanBase} 치료`,
+    `${cleanRegion} 병원`,
+    `${cleanBase} 임상사례`
+  ];
+  const combinedTags = Array.from(new Set([...topic.tags, ...regionalSeoTags]));
   
   // 5. Deterministic Natural Morning Publication Time (KST UTC+9)
   const { hour, minute, second } = getDeterministicPublishTime(safeDayIndex);
@@ -240,12 +251,12 @@ export function generateArticleForDate(dateStr: string, activeCategoryOrder?: st
   
   // 7. Excerpt & Author
   let excerpt = '';
-  let author = '데일리펄스 의학전문팀';
+  let author = '더데일리펄스 의학전문팀';
   let markdownContent = '';
 
   if (isOpinion && doctor) {
     author = `${doctor.name} 전문의 (${doctor.hospitalName})`;
-    excerpt = `[전문의 칼럼] ${doctor.hospitalName} ${doctor.name} 원장이 전하는 임상 인사이트. ${topic.shortSummary} 최신 치료 지침과 환자 맞춤형 예방 가이드를 전합니다.`;
+    excerpt = `[전문의 칼럼] ${doctor.hospitalName} ${doctor.name} 원장이 전하는 임상 인사이트. ${topic.shortSummary} ${cleanRegion} 등 진료실 환자들의 실제 사례를 바탕으로 최신 치료 지침과 맞춤 예방 가이드를 전합니다.`;
 
     markdownContent = `## 🩺 [전문의 칼럼] ${doctor.hospitalName} ${doctor.name} 원장의 의학 기고
 ### "${generatedTitle}"
@@ -299,13 +310,13 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
 건강한 삶의 기본은 내 몸이 보내는 미세한 신호를 조기에 포착하고, 검증된 의학적 근거를 바탕으로 꾸준히 생활 습관을 바로잡는 데서 시작합니다. **${cleanBase}** 증상으로 고민 중이시라면 주저하지 마시고 가까운 전문 의료진을 찾아 정확한 1:1 상담을 받으시길 권장합니다.
 `;
   } else {
-    excerpt = `${generatedTitle}. ${topic.shortSummary} ${patientCase.location} ${patientCase.ageGender} 환자의 실제 진료 및 회복 사례를 바탕으로 단계별 임상 로드맵을 제시합니다.`;
+    excerpt = `[${patientCase.location} ${patientCase.ageGender} 실제 치료사례] ${generatedTitle}. ${topic.shortSummary} ${cleanRegion} 실제 내원 환자의 치료 경과를 바탕으로 단계별 임상 로드맵을 제시합니다.`;
 
     markdownContent = `## 📌 오늘의 핵심 의학 브리핑: ${generatedTitle}
 
 ${topic.shortSummary}
 
-현대 의학에서 **${cleanBase}**은(는) 조기 발견과 체계적인 원인 감별이 치료 성패의 90% 이상을 좌우하는 대표적인 질환입니다. 본 의학 리포트에서는 ${selectedAspect} ${selectedGoal}을(를) 중점적으로 다루며, 환자 개개인의 건강 상태에 맞춘 최적의 의학적 로드맵을 안내해 드립니다.
+현대 의학에서 **${cleanBase}**은(는) 조기 발견과 체계적인 원인 감별이 치료 성패의 90% 이상을 좌우하는 대표적인 질환입니다. 본 의학 리포트에서는 ${selectedAspect} ${selectedGoal}을(를) 중점적으로 다루며, ${cleanRegion}을 비롯한 환자 개개인의 건강 상태에 맞춘 최적의 의학적 로드맵을 안내해 드립니다.
 
 ---
 
@@ -338,10 +349,10 @@ ${topic.stages.map((st) => `### 📍 ${st.stage}
 
 ---
 
-## 🔍 실제 내원 환자 임상 치료 사례 보고
+## 🔍 [${patientCase.location} 실제 치료 사례] ${cleanBase} 임상 치료 및 예후 보고
 
 > **[환자 프로필]**
-> - **거주지**: ${patientCase.location}
+> - **거주지**: ${patientCase.location} (${cleanRegion})
 > - **인적사항**: ${patientCase.ageGender} (${patientCase.occupation})
 > - **내원 시 주소(C.C)**: ${patientCase.initialSymptom}
 
@@ -389,7 +400,7 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
 
 ---
 
-## 🏥 데일리펄스 의학전문위원단의 총평
+## 🏥 더데일리펄스 의학전문위원단의 총평
 
 모든 질환은 증상이 심화되기 전 **초기 골든타임**을 포착하여 원인 중심의 치료를 진행할 때 비수술적 요법만으로도 가장 빠른 회복을 기대할 수 있습니다. 위 증상이 의심된다면 자가 판단으로 지체하지 마시고 전문의의 1:1 정밀 진료를 받으시길 권장합니다.
 `;
@@ -413,7 +424,7 @@ ${topic.qaPairs.map((qa) => `### 🙋 Q. ${qa.question}
     isBreaking: safeDayIndex % 11 === 0,
     views,
     likes,
-    tags: topic.tags
+    tags: combinedTags
   };
 }
 

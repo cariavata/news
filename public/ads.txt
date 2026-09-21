@@ -1,2 +1,3 @@
-# Google AdSense
-google.com, pub-6799823492487492, DIRECT, f08c47fec0942fa0
+# Custom Ads Notice
+# External programmatic ad networks (Google AdSense) are not used on this site.
+# Only direct admin-managed custom sponsor/notice banners are served.
