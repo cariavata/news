@@ -70,8 +70,8 @@ export default function AdminAds() {
             관리자 배너 광고 관리
           </h1>
           <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-            사이드바 및 기사 상세페이지 하단에 노출되는 자체 배너(스폰서, 제휴, 공지 배너)를 직접 등록하고 관리할 수 있습니다.
-            모바일과 PC 화면 모두에서 배너 광고가 가로 2개씩 나열되어 노출됩니다.
+            사이드바 영역에 노출되는 자체 배너(스폰서, 제휴, 공지 배너)를 직접 등록하고 관리할 수 있습니다.
+            PC 화면에서는 우측 배너 영역에 한 줄씩(1열), 모바일 화면에서는 가로 2개씩(2열) 1:1 정사각형으로 노출됩니다.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function AdminAds() {
           <div className="flex flex-col gap-2">
             <label className="font-bold text-sm text-slate-700">
               배너 이미지 등록 <span className="text-red-500">*</span>
-              <span className="font-normal text-xs text-slate-500 ml-2">(모바일/PC 공통 1:1 정사각형 가로 2열 배치)</span>
+              <span className="font-normal text-xs text-slate-500 ml-2">(모바일 가로 2열 / PC 1열 세로 나열, 1:1 정사각형)</span>
             </label>
             
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">

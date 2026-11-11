@@ -79,9 +79,9 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* Admin Custom Ad Banners Slot - Horizontal 2 columns for both Mobile & PC (Square 1:1) */}
+      {/* Admin Custom Ad Banners Slot - Mobile: 2 columns horizontally, PC: 1 per row vertically (Square 1:1) */}
       {customBanners.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
           {customBanners.map(banner => (
             <a 
               key={banner.id} 
@@ -102,7 +102,7 @@ export default function Sidebar() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
           {[1, 2].map((idx) => (
             <div 
               key={idx} 

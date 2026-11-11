@@ -262,14 +262,26 @@ async function startServer() {
   const defaultAdBanners = [
     {
       id: "ad-banner-1",
-      imageUrl: "/banners/banner_spine_joint.svg",
-      linkUrl: "/inquiry",
+      imageUrl: "/banners/ad_banner_1.png",
+      linkUrl: "https://naver.me/5qDj3QT8",
       type: "image"
     },
     {
       id: "ad-banner-2",
-      imageUrl: "/banners/banner_health_checkup.svg",
-      linkUrl: "/inquiry",
+      imageUrl: "/banners/ad_banner_2.png",
+      linkUrl: "https://naver.me/FyexEZ6p",
+      type: "image"
+    },
+    {
+      id: "ad-banner-3",
+      imageUrl: "/banners/ad_banner_3.png",
+      linkUrl: "https://naver.me/FyexEZ6p",
+      type: "image"
+    },
+    {
+      id: "ad-banner-4",
+      imageUrl: "/banners/ad_banner_4.png",
+      linkUrl: "https://www.bone119.co.kr",
       type: "image"
     }
   ];

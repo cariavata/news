@@ -20,7 +20,7 @@ const XIcon = () => (
 export default function ArticleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { articles, categories, adBanners, seoSettings, incrementArticleViews, fetchArticleById } = useAppStore();
+  const { articles, categories, seoSettings, incrementArticleViews, fetchArticleById } = useAppStore();
   const [loading, setLoading] = useState(true);
   
   const article = articles.find(a => a.id === id);
@@ -113,35 +113,6 @@ export default function ArticleDetail() {
           <div className="prose prose-slate prose-lg max-w-none font-sans text-slate-800 leading-[1.8] break-keep">
             {renderContentWithLinks(article.content)}
           </div>
-
-          {/* Article Bottom Admin Custom Banner (if registered) - 2 columns for mobile & PC */}
-          {(() => {
-            const customBanners = adBanners?.filter(b => b.imageUrl) || [];
-            if (customBanners.length === 0) return null;
-            return (
-              <div className="mt-12 pt-6 border-t border-slate-200">
-                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                  <div className="flex items-center justify-between w-full mb-3 px-1 text-[11px] font-semibold text-slate-400">
-                    <span className="tracking-widest uppercase">SPONSORED / 배너 광고</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto">
-                    {customBanners.map(banner => (
-                      <a key={banner.id} href={banner.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="block relative overflow-hidden rounded-lg group border border-slate-200 bg-white aspect-square w-full">
-                        <div className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-sm z-10">
-                          광고
-                        </div>
-                        <img 
-                          src={banner.imageUrl} 
-                          alt="배너 광고" 
-                          className="w-full h-full object-cover rounded-lg transition-transform group-hover:scale-[1.02]" 
-                        />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
 
           <div className="mt-16 pt-8 border-t border-slate-200 flex justify-between items-center">
             <button onClick={() => navigate(article.categoryId ? `/category/${article.categoryId}` : '/')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition">
