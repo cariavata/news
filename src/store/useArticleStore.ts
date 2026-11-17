@@ -7,6 +7,7 @@ import { getPublishedAutoArticles, getAutoArticleById } from '../lib/autoPublish
 import { doc, setDoc, deleteDoc, getDocs, collection, getDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
+  fetchArticlesApi,
   createArticleApi,
   updateArticleApi,
   deleteArticleApi,
@@ -261,6 +262,16 @@ export const useAppStore = create<AppState>()(
       hasFetchedInitialArticles: true,
       categoryFetchStatus: {},
       fetchInitialArticles: async () => {
+        const currentState = useAppStore.getState();
+        const hasFreshData =
+          currentState.lastFetchTime &&
+          Date.now() - currentState.lastFetchTime < 5 * 60 * 1000 &&
+          currentState.articles.length > 0;
+
+        if (hasFreshData) {
+          return;
+        }
+
         try {
           const snapshot = await getDocs(collection(db, 'articles'));
           if (!snapshot.empty) {
@@ -273,10 +284,18 @@ export const useAppStore = create<AppState>()(
             set({ articles: merged, hasFetchedInitialArticles: true, lastFetchTime: Date.now() });
           }
         } catch (error) {
-          console.warn("fetchInitialArticles Firestore error:", error);
-          const current = useAppStore.getState().articles;
-          const merged = mergeWithAutoArticles(current);
-          set({ articles: merged, hasFetchedInitialArticles: true });
+          console.warn("fetchInitialArticles Firestore error, trying server cache:", error);
+          try {
+            const apiArticles = await fetchArticlesApi();
+            const current = useAppStore.getState().articles.filter(a => !a.id.startsWith('auto-'));
+            const combined = sanitizeArticles([...apiArticles, ...current]);
+            const merged = mergeWithAutoArticles(combined);
+            set({ articles: merged, hasFetchedInitialArticles: true });
+          } catch {
+            const current = useAppStore.getState().articles;
+            const merged = mergeWithAutoArticles(current);
+            set({ articles: merged, hasFetchedInitialArticles: true });
+          }
         }
       },
       fetchArticlesByCategory: async (_categoryId: string) => {},
@@ -317,22 +336,41 @@ export const useAppStore = create<AppState>()(
         const cleanObj = cleanFirestoreData(rawObj);
         const obj = cleanObj as Article;
 
-        // 1. Immediate UI update
+        const payloadBytes = new Blob([JSON.stringify(cleanObj)]).size;
+        if (payloadBytes > 950000) {
+          throw new Error("기사 용량(썸네일 이미지 포함)이 1MB를 초과하여 저장할 수 없습니다. 더 작은 이미지를 선택해 주세요.");
+        }
+
+        let firestoreSaved = false;
+        let firestoreError: any = null;
+        try {
+          await setDoc(doc(db, 'articles', id), cleanObj);
+          firestoreSaved = true;
+        } catch (error) {
+          firestoreError = error;
+          console.error("addArticle Firestore error:", error);
+        }
+
+        let apiSaved = false;
+        try {
+          await createArticleApi(obj);
+          apiSaved = true;
+        } catch (error) {
+          console.warn("addArticle API error:", error);
+        }
+
+        if (!firestoreSaved && !apiSaved) {
+          throw new Error(firestoreError?.message || "데이터베이스에 기사를 저장하지 못했습니다.");
+        }
+
+        // Update UI & fallback cache
         set((state) => {
           const filtered = state.articles.filter(a => a.id !== id);
           const newArticles = [obj, ...filtered];
           newArticles.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          return { articles: newArticles, hasFetchedInitialArticles: true };
+          return { articles: newArticles, hasFetchedInitialArticles: true, lastFetchTime: Date.now() };
         });
 
-        // 2. Direct Firestore storage
-        try {
-          await setDoc(doc(db, 'articles', id), cleanObj);
-        } catch (error) {
-          console.error("addArticle Firestore error:", error);
-        }
-
-        // 3. Keep fallback cache synced
         try {
           const current = useAppStore.getState().articles;
           localStorage.setItem('__firestore_fallback_cache__', JSON.stringify({
@@ -343,25 +381,40 @@ export const useAppStore = create<AppState>()(
             seoSettings: useAppStore.getState().seoSettings
           }));
         } catch (e) {}
-
-        // 4. API notification if server active
-        try {
-          await createArticleApi(obj);
-        } catch (error) {}
       },
       updateArticle: async (id, updatedArticle) => {
         const cleanUpdates = cleanFirestoreData(updatedArticle);
+
+        const payloadBytes = new Blob([JSON.stringify(cleanUpdates)]).size;
+        if (payloadBytes > 950000) {
+          throw new Error("기사 용량(썸네일 이미지 포함)이 1MB를 초과하여 저장할 수 없습니다. 더 작은 이미지를 선택해 주세요.");
+        }
+
+        let firestoreSaved = false;
+        let firestoreError: any = null;
+        try {
+          await setDoc(doc(db, 'articles', id), cleanUpdates, { merge: true });
+          firestoreSaved = true;
+        } catch (error) {
+          firestoreError = error;
+          console.error("updateArticle Firestore error:", error);
+        }
+
+        let apiSaved = false;
+        try {
+          await updateArticleApi(id, cleanUpdates);
+          apiSaved = true;
+        } catch (error) {}
+
+        if (!firestoreSaved && !apiSaved) {
+          throw new Error(firestoreError?.message || "기사 수정 내용을 저장하지 못했습니다.");
+        }
+
         set((state) => {
           const updated = state.articles.map(article => article.id === id ? { ...article, ...cleanUpdates } : article);
           updated.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          return { articles: updated };
+          return { articles: updated, lastFetchTime: Date.now() };
         });
-
-        try {
-          await setDoc(doc(db, 'articles', id), cleanUpdates, { merge: true });
-        } catch (error) {
-          console.error("updateArticle Firestore error:", error);
-        }
 
         try {
           const current = useAppStore.getState().articles;
@@ -373,10 +426,6 @@ export const useAppStore = create<AppState>()(
             seoSettings: useAppStore.getState().seoSettings
           }));
         } catch (e) {}
-
-        try {
-          await updateArticleApi(id, cleanUpdates);
-        } catch (error) {}
       },
       deleteArticle: async (id) => {
         set((state) => ({ articles: state.articles.filter(article => article.id !== id) }));

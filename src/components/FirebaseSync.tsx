@@ -3,6 +3,7 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firesto
 import { db } from '../lib/firebase';
 import { useAppStore, mergeWithAutoArticles, cleanFirestoreData } from '../store/useArticleStore';
 import { fallbackCategories, fallbackCompanyPages, fallbackAdBanners } from '../data/fallbackData';
+import { fetchArticlesApi } from '../lib/api';
 
 enum OperationType {
   CREATE = 'create',
@@ -118,6 +119,17 @@ export default function FirebaseSync() {
         },
         (error) => {
           handleFirestoreError(error, OperationType.LIST, 'articles');
+          fetchArticlesApi().then((apiArticles) => {
+            if (Array.isArray(apiArticles) && apiArticles.length > 0) {
+              const current = useAppStore.getState().articles.filter(a => !a.id.startsWith('auto-'));
+              const map = new Map<string, any>();
+              [...current, ...sanitizeArticles(apiArticles)].forEach(a => {
+                if (a && a.id) map.set(a.id, a);
+              });
+              const merged = mergeWithAutoArticles(Array.from(map.values()));
+              useAppStore.setState({ articles: merged, hasFetchedInitialArticles: true });
+            }
+          }).catch(() => {});
         }
       );
       unsubscribes.push(unsubArticles);

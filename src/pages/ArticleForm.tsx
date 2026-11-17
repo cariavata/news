@@ -32,6 +32,7 @@ export default function ArticleForm() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingDoctorImage, setUploadingDoctorImage] = useState(false);
   const [uploadingCardImages, setUploadingCardImages] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -62,21 +63,39 @@ export default function ArticleForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
+    setSubmitError(null);
+
     if (uploadingImage || uploadingDoctorImage || uploadingCardImages) {
-      alert("이미지가 아직 업로드/처리 중입니다. 잠시 후 다시 시도해 주세요.");
+      setSubmitError("이미지가 아직 업로드/처리 중입니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
+
+    if (!formData.title.trim()) {
+      setSubmitError("기사 제목을 입력해 주세요.");
+      return;
+    }
+    if (!formData.excerpt.trim()) {
+      setSubmitError("요약문(Excerpt)을 입력해 주세요.");
+      return;
+    }
+    if (!formData.content.trim()) {
+      setSubmitError("본문 내용을 입력해 주세요.");
+      return;
+    }
+
+    const targetCategoryId = formData.categoryId || categories[0]?.id || 'checkup';
+
     setIsSaving(true);
     try {
       if (id) {
-        await updateArticle(id, formData);
+        await updateArticle(id, { ...formData, categoryId: targetCategoryId });
       } else {
-        await addArticle({ ...formData });
+        await addArticle({ ...formData, categoryId: targetCategoryId });
       }
       navigate('/admin');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to save article:", err);
-      alert("기사 저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setSubmitError(err?.message || "기사 저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
       setIsSaving(false);
     }
   };
@@ -85,18 +104,22 @@ export default function ArticleForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingImage(true);
+    setSubmitError(null);
     try {
-      try {
-        const urls = await uploadImagesApi([file]);
-        if (urls && urls.length > 0) {
-          setFormData(prev => ({ ...prev, imageUrl: urls[0] }));
-          return;
-        }
-      } catch (err) {}
-      const base64 = await compressImage(file, 900, 900, 0.7);
-      if (base64) {
+      // Compress client-side so thumbnail is compact (<150KB) and persists reliably in Firestore across environments
+      const base64 = await compressImage(file, 900, 900, 0.72);
+      if (base64 && base64.length < 700000) {
         setFormData(prev => ({ ...prev, imageUrl: base64 }));
+        return;
       }
+      // Fallback to server upload if non-raster or still large
+      const urls = await uploadImagesApi([file]);
+      if (urls && urls.length > 0) {
+        setFormData(prev => ({ ...prev, imageUrl: urls[0] }));
+      }
+    } catch (err) {
+      console.error("Thumbnail upload failed:", err);
+      setSubmitError("썸네일 이미지 처리 중 오류가 발생했습니다. 다른 이미지를 선택해 주세요.");
     } finally {
       setUploadingImage(false);
     }
@@ -107,16 +130,14 @@ export default function ArticleForm() {
     if (!file) return;
     setUploadingDoctorImage(true);
     try {
-      try {
-        const urls = await uploadImagesApi([file]);
-        if (urls && urls.length > 0) {
-          setFormData(prev => ({ ...prev, doctorImage: urls[0] }));
-          return;
-        }
-      } catch (err) {}
-      const base64 = await compressImage(file, 400, 400, 0.7);
-      if (base64) {
+      const base64 = await compressImage(file, 400, 400, 0.72);
+      if (base64 && base64.length < 500000) {
         setFormData(prev => ({ ...prev, doctorImage: base64 }));
+        return;
+      }
+      const urls = await uploadImagesApi([file]);
+      if (urls && urls.length > 0) {
+        setFormData(prev => ({ ...prev, doctorImage: urls[0] }));
       }
     } finally {
       setUploadingDoctorImage(false);
@@ -128,17 +149,15 @@ export default function ArticleForm() {
     if (files.length === 0) return;
     setUploadingCardImages(true);
     try {
-      try {
-        const urls = await uploadImagesApi(files);
-        if (urls && urls.length > 0) {
-          setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...urls] }));
-          return;
-        }
-      } catch (err) {}
       const compressedList = await Promise.all(files.map(f => compressImage(f, 900, 900, 0.7)));
       const valid = compressedList.filter(Boolean);
       if (valid.length > 0) {
         setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...valid] }));
+        return;
+      }
+      const urls = await uploadImagesApi(files);
+      if (urls && urls.length > 0) {
+        setFormData(prev => ({ ...prev, cardNewsImages: [...prev.cardNewsImages, ...urls] }));
       }
     } finally {
       setUploadingCardImages(false);
@@ -156,7 +175,12 @@ export default function ArticleForm() {
         </Link>
       </div>
       
-      <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-6">
+      <form onSubmit={handleSubmit} noValidate className="p-6 flex flex-col gap-6">
+        {submitError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm font-medium">
+            {submitError}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-2 md:col-span-2">
             <label className="font-bold text-sm text-slate-700">제목</label>
@@ -215,7 +239,7 @@ export default function ArticleForm() {
             </div>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <input 
-                type="url" 
+                type="text" 
                 value={formData.imageUrl}
                 onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
                 className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition flex-1 w-full text-sm"
@@ -278,14 +302,17 @@ export default function ArticleForm() {
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2">
-            <label className="font-bold text-sm text-slate-700">본문 내용</label>
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-sm text-slate-700">본문 내용</label>
+              <span className="text-xs text-slate-500">일반 텍스트, 마크다운 및 HTML 코드 모두 지원됩니다.</span>
+            </div>
             <textarea 
               rows={10}
               required
               value={formData.content}
               onChange={(e) => setFormData({...formData, content: e.target.value})}
               className="border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-slate-900 outline-none transition resize-y"
-              placeholder="전체 기사 내용을 입력하세요"
+              placeholder="전체 기사 내용을 입력하세요 (HTML 코드 붙여넣기 가능)"
             />
           </div>
 
