@@ -158,6 +158,64 @@ async function startServer() {
     }
   });
 
+  const sendImageFromRaw = (rawUrl: string | undefined, res: express.Response) => {
+    if (!rawUrl || typeof rawUrl !== "string") {
+      return res.status(404).end();
+    }
+    const trimmed = rawUrl.trim();
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return res.redirect(302, trimmed);
+    }
+    const dataMatch = trimmed.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,([\s\S]+)$/);
+    if (dataMatch) {
+      const mimeType = dataMatch[1];
+      const buffer = Buffer.from(dataMatch[2], "base64");
+      return res
+        .status(200)
+        .set({
+          "Content-Type": mimeType,
+          "Content-Length": String(buffer.length),
+          "Cache-Control": "public, max-age=86400",
+        })
+        .send(buffer);
+    }
+    if (trimmed.startsWith("/uploads/")) {
+      const filename = path.basename(trimmed);
+      const localPath = path.join(uploadsDir, filename);
+      if (fs.existsSync(localPath)) {
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.sendFile(localPath);
+      }
+    }
+    return res.status(404).end();
+  };
+
+  // Public HTTP thumbnail endpoint for Naver/Google/KakaoTalk/Twitter crawlers
+  app.get("/api/articles/:id/thumbnail", async (req, res) => {
+    try {
+      const id = req.params.id;
+      let article: any = await getFirestoreDocument("articles", id);
+      if (!article && isMongoConnected()) {
+        try {
+          article = await (ArticleModel as any).findById(id).lean().exec();
+        } catch (e) {}
+      }
+      const rawImg = article?.imageUrl || (Array.isArray(article?.cardNewsImages) && article.cardNewsImages[0]) || "";
+      return sendImageFromRaw(rawImg, res);
+    } catch (error: any) {
+      return res.status(404).end();
+    }
+  });
+
+  app.get("/api/seo/og-image", async (req, res) => {
+    try {
+      const seo = await getFirestoreDocument("settings", "seo");
+      return sendImageFromRaw(seo?.ogImage, res);
+    } catch (error: any) {
+      return res.status(404).end();
+    }
+  });
+
   // Views / Likes increment API
   app.post("/api/articles/:id/views", async (req, res) => {
     try {
@@ -506,6 +564,48 @@ async function startServer() {
 
   const DEFAULT_SITE_DOMAIN = "https://the-dailypulse.netlify.app";
 
+  const escapeHtmlAttr = (val: string): string => {
+    return String(val || "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  };
+
+  const getRequestHostUrl = (req: express.Request): string => {
+    const protoHeader = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
+    const protocol = protoHeader.split(",")[0].trim();
+    const hostHeader = (req.headers["x-forwarded-host"] as string) || req.get("host") || "";
+    const host = hostHeader.split(",")[0].trim();
+    if (host) return `${protocol}://${host}`;
+    if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+    return DEFAULT_SITE_DOMAIN;
+  };
+
+  const resolvePublicArticleImage = (article: any, hostUrl: string): string => {
+    if (!article) return "";
+    const raw = String(article.imageUrl || (Array.isArray(article.cardNewsImages) && article.cardNewsImages[0]) || "").trim();
+    if (!raw) return "";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("data:image/") || raw.startsWith("/uploads/")) {
+      return `${hostUrl}/api/articles/${article.id}/thumbnail`;
+    }
+    if (raw.startsWith("/")) return `${hostUrl}${raw}`;
+    return "";
+  };
+
+  const resolvePublicSeoImage = (raw: string | undefined, hostUrl: string): string => {
+    if (!raw || typeof raw !== "string") return "";
+    const trimmed = raw.trim();
+    if (!trimmed) return "";
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+    if (trimmed.startsWith("data:image/") || trimmed.startsWith("/uploads/")) {
+      return `${hostUrl}/api/seo/og-image`;
+    }
+    if (trimmed.startsWith("/")) return `${hostUrl}${trimmed}`;
+    return "";
+  };
+
   app.get("/robots.txt", async (req, res) => {
     const seo = await getSeoSettings();
     let robotsContent = (seo && seo.robotsTxt) ? seo.robotsTxt : "User-agent: *\nAllow: /";
@@ -519,7 +619,7 @@ async function startServer() {
   });
 
   app.get("/sitemap.xml", async (req, res) => {
-    const hostUrl = DEFAULT_SITE_DOMAIN;
+    const hostUrl = getRequestHostUrl(req);
     const seo = await getSeoSettings();
 
     if (seo && seo.sitemapXml && seo.sitemapXml.trim().startsWith("<")) {
@@ -565,7 +665,7 @@ async function startServer() {
   });
 
   const rssHandler = async (req: express.Request, res: express.Response) => {
-    const hostUrl = DEFAULT_SITE_DOMAIN;
+    const hostUrl = getRequestHostUrl(req);
     const seo = await getSeoSettings();
 
     if (seo && seo.rssXml && seo.rssXml.trim().startsWith("<")) {
@@ -576,7 +676,7 @@ async function startServer() {
         const siteTitle = seo?.title || "더데일리펄스 | 의학 의료 뉴스 (DAILY PULSE)";
         const siteDesc = seo?.description || "정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.";
 
-        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n`;
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n<channel>\n`;
         xml += `  <title><![CDATA[${siteTitle}]]></title>\n  <link>${hostUrl}</link>\n  <description><![CDATA[${siteDesc}]]></description>\n  <language>ko-kr</language>\n`;
         xml += `  <copyright><![CDATA[더데일리펄스 (DAILY PULSE). All rights reserved.]]></copyright>\n`;
         xml += `  <pubDate>${toRfc822()}</pubDate>\n  <lastBuildDate>${toRfc822()}</lastBuildDate>\n`;
@@ -586,6 +686,7 @@ async function startServer() {
           const authorName = article.author || "더데일리펄스 의학전문팀";
           const rfcDate = toRfc822(article.createdAt);
           const articleUrl = `${hostUrl}/article/${article.id}`;
+          const publicImg = resolvePublicArticleImage(article, hostUrl);
           const cleanDesc = (article.excerpt || article.content || "")
             .replace(/<\/?[^>]+(>|$)/g, "")
             .replace(/\s+/g, " ")
@@ -595,9 +696,13 @@ async function startServer() {
           xml += `  <item>\n`;
           xml += `    <title><![CDATA[${article.title}]]></title>\n`;
           xml += `    <link>${articleUrl}</link>\n`;
-          xml += `    <description><![CDATA[${cleanDesc}]]></description>\n`;
+          xml += `    <description><![CDATA[${publicImg ? `<p><img src="${publicImg}" alt="${escapeHtmlAttr(article.title)}" /></p>` : ""}${cleanDesc}]]></description>\n`;
           if (article.categoryId) {
             xml += `    <category><![CDATA[${article.categoryId}]]></category>\n`;
+          }
+          if (publicImg) {
+            xml += `    <enclosure url="${escapeHtmlAttr(publicImg)}" type="image/jpeg" length="0" />\n`;
+            xml += `    <media:content url="${escapeHtmlAttr(publicImg)}" medium="image" />\n`;
           }
           xml += `    <dc:creator><![CDATA[${authorName}]]></dc:creator>\n`;
           xml += `    <pubDate>${rfcDate}</pubDate>\n`;
@@ -651,9 +756,7 @@ async function startServer() {
       }
       template = template.replace('<html lang="en">', '<html lang="ko">');
 
-      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-      const host = req.get("host");
-      const hostUrl = `${protocol}://${host}`;
+      const hostUrl = getRequestHostUrl(req);
       const canonicalUrl = `${hostUrl}${req.path.split('?')[0]}`;
       const seo = await getSeoSettings();
       const siteTitle = seo?.title || "더데일리펄스 | 의학 의료 뉴스 (DAILY PULSE)";
@@ -666,7 +769,7 @@ async function startServer() {
       let customTitle = "";
       let customDesc = "";
       let customKeywords = "";
-      let customOgImage = seo?.ogImage || "";
+      let customOgImage = resolvePublicSeoImage(seo?.ogImage, hostUrl);
       let ogType = "website";
       let jsonLdList: any[] = [];
       let bodyHtml = "";
@@ -727,7 +830,10 @@ async function startServer() {
           
           const tagsStr = Array.isArray(article.tags) ? article.tags.join(', ') : '';
           customKeywords = `${tagsStr ? tagsStr + ', ' : ''}${catName}, ${article.title}, 더데일리펄스, 데일리펄스, DAILY PULSE, Daily Pulse, 의학 의료 뉴스, 보건의료`;
-          customOgImage = article.imageUrl || (article.cardNewsImages && article.cardNewsImages[0]) || customOgImage;
+          const resolvedArticleImage = resolvePublicArticleImage(article, hostUrl);
+          if (resolvedArticleImage) {
+            customOgImage = resolvedArticleImage;
+          }
 
           jsonLdList.push({
             "@context": "https://schema.org",
@@ -738,7 +844,13 @@ async function startServer() {
             },
             "headline": article.title,
             "description": customDesc,
-            "image": customOgImage ? [customOgImage] : undefined,
+            ...(customOgImage ? {
+              "image": [{
+                "@type": "ImageObject",
+                "url": customOgImage
+              }],
+              "thumbnailUrl": customOgImage
+            } : {}),
             "datePublished": article.createdAt || new Date().toISOString(),
             "dateModified": article.updatedAt || article.createdAt || new Date().toISOString(),
             "author": [{
@@ -799,7 +911,7 @@ async function startServer() {
                     </div>
                   ` : ''}
                 </header>
-                ${article.imageUrl ? `<div style="margin: 25px 0;"><img src="${article.imageUrl}" alt="${article.title}" style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 12px;" /></div>` : ""}
+                ${resolvedArticleImage ? `<div style="margin: 25px 0;"><img src="${escapeHtmlAttr(resolvedArticleImage)}" alt="${escapeHtmlAttr(article.title)}" style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 12px;" /></div>` : ""}
                 <div style="font-size: 17px; line-height: 1.85; color: #334155; margin-top: 25px; white-space: pre-line;">
                   ${article.content || article.excerpt || ""}
                 </div>
@@ -863,9 +975,11 @@ async function startServer() {
               <p style="font-size: 15px; color: #64748b; margin: 8px 0 0;">${catName} 관련 최신 의학 지견, 지역별 환자 치료 경과 및 전문의 가이드를 제공합니다.</p>
             </div>
             <section style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
-              ${catArticles.slice(0, 30).map(art => `
+                ${catArticles.slice(0, 30).map(art => {
+                  const artImg = resolvePublicArticleImage(art, hostUrl);
+                  return `
                 <article style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
-                  ${art.imageUrl ? `<a href="/article/${art.id}"><img src="${art.imageUrl}" alt="${art.title}" style="width: 100%; height: 190px; object-fit: cover;" /></a>` : ""}
+                  ${artImg ? `<a href="/article/${art.id}"><img src="${escapeHtmlAttr(artImg)}" alt="${escapeHtmlAttr(art.title)}" style="width: 100%; height: 190px; object-fit: cover;" /></a>` : ""}
                   <div style="padding: 18px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                       <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 10px; line-height: 1.4;">
@@ -881,7 +995,8 @@ async function startServer() {
                     </div>
                   </div>
                 </article>
-              `).join("\n              ")}
+              `;
+                }).join("\n              ")}
             </section>
           </main>
           ${footerHtml}
@@ -998,10 +1113,12 @@ async function startServer() {
               <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.6;">${siteDesc}</p>
             </div>
 
-            ${heroArticle ? `
+            ${heroArticle ? (() => {
+              const heroImg = resolvePublicArticleImage(heroArticle, hostUrl);
+              return `
               <section style="margin-bottom: 40px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
                 <div style="display: flex; flex-direction: column; md:flex-row; gap: 20px;">
-                  ${heroArticle.imageUrl ? `<a href="/article/${heroArticle.id}"><img src="${heroArticle.imageUrl}" alt="${heroArticle.title}" style="width: 100%; max-height: 400px; object-fit: cover;" /></a>` : ""}
+                  ${heroImg ? `<a href="/article/${heroArticle.id}"><img src="${escapeHtmlAttr(heroImg)}" alt="${escapeHtmlAttr(heroArticle.title)}" style="width: 100%; max-height: 400px; object-fit: cover;" /></a>` : ""}
                   <div style="padding: 24px;">
                     <span style="color: #059669; font-weight: 700; font-size: 14px;">🔥 오늘의 핵심 헤드라인</span>
                     <h1 style="font-size: 26px; font-weight: 800; color: #0f172a; margin: 10px 0 14px; line-height: 1.4;">
@@ -1012,7 +1129,8 @@ async function startServer() {
                   </div>
                 </div>
               </section>
-            ` : ""}
+            `;
+            })() : ""}
 
             <section style="margin-bottom: 40px;">
               <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #059669; padding-bottom: 10px;">
@@ -1020,9 +1138,11 @@ async function startServer() {
                 <span style="font-size: 13px; color: #64748b;">서울·수도권 및 전국 주요 거점 환자 치료 사례</span>
               </div>
               <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
-                ${topArticles.slice(1).map(art => `
+                ${topArticles.slice(1).map(art => {
+                  const artImg = resolvePublicArticleImage(art, hostUrl);
+                  return `
                   <article style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
-                    ${art.imageUrl ? `<a href="/article/${art.id}"><img src="${art.imageUrl}" alt="${art.title}" style="width: 100%; height: 160px; object-fit: cover;" /></a>` : ""}
+                    ${artImg ? `<a href="/article/${art.id}"><img src="${escapeHtmlAttr(artImg)}" alt="${escapeHtmlAttr(art.title)}" style="width: 100%; height: 160px; object-fit: cover;" /></a>` : ""}
                     <div style="padding: 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                       <div>
                         <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 8px; line-height: 1.4;">
@@ -1038,7 +1158,8 @@ async function startServer() {
                       </div>
                     </div>
                   </article>
-                `).join("\n                ")}
+                `;
+                }).join("\n                ")}
               </div>
             </section>
 
@@ -1063,34 +1184,54 @@ async function startServer() {
 
       const finalTitle = customTitle || siteTitle;
       const finalDesc = customDesc || siteDesc;
-      const finalOgImage = customOgImage || `${hostUrl}/og-image.jpg`;
+      const finalOgImage = customOgImage;
+
+      const escapedTitle = escapeHtmlAttr(finalTitle);
+      const escapedDesc = escapeHtmlAttr(finalDesc);
+      const escapedKeywords = escapeHtmlAttr(customKeywords);
+      const escapedOgImage = escapeHtmlAttr(finalOgImage);
+      const escapedCanonical = escapeHtmlAttr(canonicalUrl);
 
       // 1. Update Title
-      template = template.replace(/<title>.*?<\/title>/i, `<title>${finalTitle}</title>`);
+      template = template.replace(/<title>.*?<\/title>/i, `<title>${escapedTitle}</title>`);
 
-      // 2. Update Meta Description
-      if (/<meta name="description"/i.test(template)) {
-        template = template.replace(/<meta name="description" content=".*?"\s*\/?>/i, `<meta name="description" content="${finalDesc}" />`);
-      } else {
-        template = template.replace('</head>', `\n    <meta name="description" content="${finalDesc}" />\n  </head>`);
-      }
+      // 2. Strip static duplicate meta tags from index.html before injecting page-specific tags
+      template = template
+        .replace(/<meta\s+name=["']description["'][^>]*>\s*/gi, '')
+        .replace(/<meta\s+name=["']keywords["'][^>]*>\s*/gi, '')
+        .replace(/<meta\s+name=["']thumbnail["'][^>]*>\s*/gi, '')
+        .replace(/<meta\s+property=["']og:[^"']+["'][^>]*>\s*/gi, '')
+        .replace(/<meta\s+name=["']twitter:[^"']+["'][^>]*>\s*/gi, '')
+        .replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, '')
+        .replace(/<link\s+rel=["']image_src["'][^>]*>\s*/gi, '');
 
-      // 3. Inject Canonical URL & Robots Meta Tags
+      // 3. Inject Canonical URL, Robots, OpenGraph, Twitter Cards & Naver/Google Thumbnail Tags
+      const imageTags = finalOgImage ? `
+    <meta property="og:image" content="${escapedOgImage}" />
+    ${finalOgImage.startsWith('https://') ? `<meta property="og:image:secure_url" content="${escapedOgImage}" />` : ''}
+    <meta property="og:image:alt" content="${escapedTitle}" />
+    <meta property="og:image:width" content="900" />
+    <meta property="og:image:height" content="900" />
+    <meta name="thumbnail" content="${escapedOgImage}" />
+    <link rel="image_src" href="${escapedOgImage}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="${escapedOgImage}" />
+    <meta name="twitter:image:alt" content="${escapedTitle}" />` : `
+    <meta name="twitter:card" content="summary" />`;
+
       const metaTagsToInject = `
-    <link rel="canonical" href="${canonicalUrl}" />
+    <meta name="description" content="${escapedDesc}" />
+    <link rel="canonical" href="${escapedCanonical}" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    ${customKeywords ? `<meta name="keywords" content="${customKeywords}" />` : ''}
+    ${escapedKeywords ? `<meta name="keywords" content="${escapedKeywords}" />` : ''}
     <meta property="og:type" content="${ogType}" />
     <meta property="og:site_name" content="더데일리펄스 (DAILY PULSE)" />
-    <meta property="og:title" content="${finalTitle}" />
-    <meta property="og:description" content="${finalDesc}" />
-    <meta property="og:url" content="${canonicalUrl}" />
-    <meta property="og:image" content="${finalOgImage}" />
+    <meta property="og:title" content="${escapedTitle}" />
+    <meta property="og:description" content="${escapedDesc}" />
+    <meta property="og:url" content="${escapedCanonical}" />
     <meta property="og:locale" content="ko_KR" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${finalTitle}" />
-    <meta name="twitter:description" content="${finalDesc}" />
-    <meta name="twitter:image" content="${finalOgImage}" />
+    <meta name="twitter:title" content="${escapedTitle}" />
+    <meta name="twitter:description" content="${escapedDesc}" />${imageTags}
       `.trim();
 
       template = template.replace('</head>', `\n    ${metaTagsToInject}\n  </head>`);

@@ -67,17 +67,43 @@ export default function ArticleDetail() {
   }
 
   const categoryName = categories.find(c => c.id === article.categoryId)?.name || '일반';
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const canonicalUrl = `${origin}${typeof window !== 'undefined' ? window.location.pathname : `/article/${article.id}`}`;
+  const rawImg = (article.imageUrl || (Array.isArray(article.cardNewsImages) && article.cardNewsImages[0]) || '').trim();
+  const publicOgImage = !rawImg
+    ? ''
+    : (rawImg.startsWith('http://') || rawImg.startsWith('https://'))
+      ? rawImg
+      : (rawImg.startsWith('data:image/') || rawImg.startsWith('/uploads/'))
+        ? `${origin}/api/articles/${article.id}/thumbnail`
+        : rawImg.startsWith('/')
+          ? `${origin}${rawImg}`
+          : '';
+  const cleanExcerpt = (article.excerpt || article.content || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160);
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col">
       <Helmet>
         <title>{article.title} - {seoSettings.siteName || '데일리펄스'}</title>
-        <meta name="description" content={article.excerpt} />
+        <meta name="description" content={cleanExcerpt} />
+        <link rel="canonical" href={canonicalUrl} />
         <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={article.excerpt} />
-        {article.imageUrl && <meta property="og:image" content={article.imageUrl} />}
+        <meta property="og:description" content={cleanExcerpt} />
         <meta property="og:type" content="article" />
-        <meta property="og:url" content={window.location.href} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:card" content={publicOgImage ? 'summary_large_image' : 'summary'} />
+        <meta name="twitter:title" content={article.title} />
+        <meta name="twitter:description" content={cleanExcerpt} />
+        {publicOgImage && <meta property="og:image" content={publicOgImage} />}
+        {publicOgImage && <meta property="og:image:alt" content={article.title} />}
+        {publicOgImage && <meta name="thumbnail" content={publicOgImage} />}
+        {publicOgImage && <link rel="image_src" href={publicOgImage} />}
+        {publicOgImage && <meta name="twitter:image" content={publicOgImage} />}
+        {publicOgImage && <meta name="twitter:image:alt" content={article.title} />}
       </Helmet>
       <Header />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">

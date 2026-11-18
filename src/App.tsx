@@ -45,6 +45,18 @@ export default function App() {
   // Replace newlines and multi-spaces with simple single space for description to prevent parser errors in crawlers
   const cleanDescription = (seoSettings.description || '건강과 관련된 최신 뉴스와 알찬 정보를 지금 바로 확인하세요.').replace(/\s+/g, ' ').trim();
   const cleanOgDescription = (seoSettings.ogDescription || seoSettings.description || '건강과 관련된 최신 뉴스와 알찬 정보를 지금 바로 확인하세요.').replace(/\s+/g, ' ').trim();
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const rawRootOg = (seoSettings.ogImage || '').trim();
+  const publicRootOgImage = !rawRootOg
+    ? ''
+    : (rawRootOg.startsWith('http://') || rawRootOg.startsWith('https://'))
+      ? rawRootOg
+      : (rawRootOg.startsWith('data:image/') || rawRootOg.startsWith('/uploads/'))
+        ? `${origin}/api/seo/og-image`
+        : rawRootOg.startsWith('/')
+          ? `${origin}${rawRootOg}`
+          : '';
+  const resolvedRootTitle = seoSettings.ogTitle || seoSettings.title || '데일리펄스 | 신뢰할 수 있는 보건의료 소식';
 
   return (
     <HelmetProvider>
@@ -57,10 +69,15 @@ export default function App() {
         
         {/* Open Graph Tags for SNS Share */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content={seoSettings.ogTitle || seoSettings.title || '데일리펄스 | 신뢰할 수 있는 보건의료 소식'} />
+        <meta property="og:title" content={resolvedRootTitle} />
         <meta property="og:description" content={cleanOgDescription} />
-        {seoSettings.ogImage && <meta property="og:image" content={seoSettings.ogImage} />}
+        {publicRootOgImage && <meta property="og:image" content={publicRootOgImage} />}
         {seoSettings.siteName && <meta property="og:site_name" content={seoSettings.siteName} />}
+
+        <meta name="twitter:card" content={publicRootOgImage ? 'summary_large_image' : 'summary'} />
+        <meta name="twitter:title" content={resolvedRootTitle} />
+        <meta name="twitter:description" content={cleanOgDescription} />
+        {publicRootOgImage && <meta name="twitter:image" content={publicRootOgImage} />}
 
         {navToken && (
           <meta name="naver-site-verification" content={navToken} />

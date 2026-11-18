@@ -97,7 +97,7 @@ export default function AdminSEO() {
     const siteDesc = formData.description || '정형외과 질환, 필수 건강검진, 산부인과 정보 등 일상생활에 꼭 필요한 최신 의학 뉴스와 알찬 정보를 누구나 알기 쉽게 전달합니다.';
     const nowRfc = new Date().toUTCString();
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n`;
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n<channel>\n`;
     xml += `  <title><![CDATA[${siteTitle}]]></title>\n  <link>${domain}</link>\n  <description><![CDATA[${siteDesc}]]></description>\n  <language>ko-kr</language>\n`;
     xml += `  <pubDate>${nowRfc}</pubDate>\n  <lastBuildDate>${nowRfc}</lastBuildDate>\n`;
     xml += `  <atom:link href="${domain}/rss.xml" rel="self" type="application/rss+xml" />\n`;
@@ -105,7 +105,22 @@ export default function AdminSEO() {
     for (const art of articles.slice(0, 30)) {
       const cleanDesc = (art.excerpt || art.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 300);
       const artDate = art.createdAt ? new Date(art.createdAt).toUTCString() : nowRfc;
-      xml += `  <item>\n    <title><![CDATA[${art.title}]]></title>\n    <link>${domain}/article/${art.id}</link>\n    <description><![CDATA[${cleanDesc}]]></description>\n    <dc:creator><![CDATA[${art.author || '데일리펄스'}]]></dc:creator>\n    <pubDate>${artDate}</pubDate>\n    <guid isPermaLink="true">${domain}/article/${art.id}</guid>\n  </item>\n`;
+      const rawImg = (art.imageUrl || (Array.isArray(art.cardNewsImages) && art.cardNewsImages[0]) || '').trim();
+      const publicImg = !rawImg
+        ? ''
+        : (rawImg.startsWith('http://') || rawImg.startsWith('https://'))
+          ? rawImg
+          : (rawImg.startsWith('data:image/') || rawImg.startsWith('/uploads/'))
+            ? `${domain}/api/articles/${art.id}/thumbnail`
+            : rawImg.startsWith('/')
+              ? `${domain}${rawImg}`
+              : '';
+      const escapedTitle = art.title.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const descPrefix = publicImg ? `<p><img src="${publicImg}" alt="${escapedTitle}" /></p>` : '';
+      const mediaTags = publicImg
+        ? `    <enclosure url="${publicImg}" type="image/jpeg" length="0" />\n    <media:content url="${publicImg}" medium="image" />\n`
+        : '';
+      xml += `  <item>\n    <title><![CDATA[${art.title}]]></title>\n    <link>${domain}/article/${art.id}</link>\n    <description><![CDATA[${descPrefix}${cleanDesc}]]></description>\n${mediaTags}    <dc:creator><![CDATA[${art.author || '데일리펄스'}]]></dc:creator>\n    <pubDate>${artDate}</pubDate>\n    <guid isPermaLink="true">${domain}/article/${art.id}</guid>\n  </item>\n`;
     }
 
     xml += `</channel>\n</rss>`;

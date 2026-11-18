@@ -90,6 +90,16 @@ export async function getFirestoreDocument<T = any>(collectionName: string, docI
     return cached.data;
   }
 
+  // Check if collection cache already has this document fresh
+  const colCached = memoryCache.get(`col_${collectionName}`);
+  if (colCached && Array.isArray(colCached.data) && Date.now() - colCached.timestamp < CACHE_TTL_MS) {
+    const found = colCached.data.find((item: any) => item && item.id === docId);
+    if (found) {
+      memoryCache.set(cacheKey, { data: found, timestamp: colCached.timestamp });
+      return found as T;
+    }
+  }
+
   try {
     const docRef = doc(db, collectionName, docId);
     const snap = await getDoc(docRef);
@@ -103,7 +113,12 @@ export async function getFirestoreDocument<T = any>(collectionName: string, docI
     } else {
       console.warn(`Firestore read error on ${collectionName}/${docId}:`, error?.message || error);
     }
-    return cached?.data || null;
+    if (cached?.data) return cached.data;
+    if (colCached && Array.isArray(colCached.data)) {
+      const found = colCached.data.find((item: any) => item && item.id === docId);
+      if (found) return found as T;
+    }
+    return null;
   }
 }
 
